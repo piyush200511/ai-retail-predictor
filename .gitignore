@@ -1,0 +1,12 @@
+
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Node build
+frontend/dist/
+
+# Logs
+*.log
