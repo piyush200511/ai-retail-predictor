@@ -24,8 +24,7 @@ export default function SalesPage() {
     setError('');
     try {
       const res = await salesApi.list();
-      const data = res.data.results ?? res.data;
-      setOrders(data);
+      setOrders(res.data.results ?? res.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to load sales orders.');
     } finally {
@@ -33,17 +32,13 @@ export default function SalesPage() {
     }
   };
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
+  useEffect(() => { loadOrders(); }, []);
 
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(t);
   }, [toast]);
-
-  const handleCreate = () => setModalOpen(true);
 
   const handleSaved = () => {
     setToast({ type: 'success', message: 'Sales order created!' });
@@ -58,10 +53,9 @@ export default function SalesPage() {
       await loadOrders();
     } catch (err) {
       const data = err.response?.data;
-      const msg =
-        typeof data === 'object'
-          ? Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(' | ')
-          : 'Action failed.';
+      const msg = typeof data === 'object'
+        ? Object.entries(data).map(([k, v]) => `${k}: ${v}`).join(' | ')
+        : 'Action failed.';
       setToast({ type: 'error', message: msg });
     } finally {
       setBusyId(null);
@@ -70,8 +64,7 @@ export default function SalesPage() {
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
-      const matchesSearch =
-        !search ||
+      const matchesSearch = !search ||
         o.order_number?.toLowerCase().includes(search.toLowerCase()) ||
         o.customer_name?.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = !statusFilter || o.status === statusFilter;
@@ -81,11 +74,11 @@ export default function SalesPage() {
 
   const statusBadge = (status) => {
     const colors = {
-      draft: 'bg-slate-100 text-slate-700',
-      confirmed: 'bg-blue-100 text-blue-700',
-      completed: 'bg-green-100 text-green-700',
-      cancelled: 'bg-red-100 text-red-700',
-      returned: 'bg-amber-100 text-amber-800',
+      draft:     'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300',
+      confirmed: 'bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300',
+      completed: 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300',
+      cancelled: 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300',
+      returned:  'bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300',
     };
     return (
       <span className={`text-xs px-2 py-0.5 rounded font-medium ${colors[status] || colors.draft}`}>
@@ -98,34 +91,20 @@ export default function SalesPage() {
     {
       key: 'order_number',
       label: 'Order #',
-      render: (row) => (
-        <span className="font-mono text-xs text-slate-700">{row.order_number}</span>
-      ),
+      render: (row) => <span className="font-mono text-xs text-slate-700 dark:text-slate-300">{row.order_number}</span>,
     },
     { key: 'order_date', label: 'Date' },
-    {
-      key: 'customer_name',
-      label: 'Customer',
-      render: (row) => row.customer_name || 'Walk-in',
-    },
+    { key: 'customer_name', label: 'Customer', render: (row) => row.customer_name || 'Walk-in' },
     { key: 'warehouse_code', label: 'Warehouse' },
-    {
-      key: 'total_amount',
-      label: 'Total',
-      render: (row) => `Rs. ${Number(row.total_amount).toFixed(2)}`,
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      render: (row) => statusBadge(row.status),
-    },
+    { key: 'total_amount', label: 'Total', render: (row) => `Rs. ${Number(row.total_amount).toFixed(2)}` },
+    { key: 'status', label: 'Status', render: (row) => statusBadge(row.status) },
     {
       key: 'actions',
       label: 'Actions',
       render: (row) => {
         if (!canEdit) return null;
         const busy = busyId === row.sales_order_id;
-        const btn = 'text-xs px-2 py-1 rounded border font-medium disabled:opacity-50';
+        const btn = 'text-xs px-2 py-1 rounded border font-medium disabled:opacity-50 transition';
         return (
           <div className="flex gap-1">
             {row.status === 'draft' && (
@@ -133,14 +112,14 @@ export default function SalesPage() {
                 <button
                   disabled={busy}
                   onClick={() => doAction(row.sales_order_id, salesApi.confirm, 'Order confirmed (stock reserved)')}
-                  className={`${btn} bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100`}
+                  className={`${btn} bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60`}
                 >
                   <CheckCircle size={12} className="inline" /> Confirm
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => doAction(row.sales_order_id, salesApi.cancel, 'Order cancelled')}
-                  className={`${btn} bg-red-50 border-red-200 text-red-700 hover:bg-red-100`}
+                  className={`${btn} bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60`}
                 >
                   <XCircle size={12} className="inline" /> Cancel
                 </button>
@@ -151,14 +130,14 @@ export default function SalesPage() {
                 <button
                   disabled={busy}
                   onClick={() => doAction(row.sales_order_id, salesApi.complete, 'Order completed (stock deducted)')}
-                  className={`${btn} bg-green-50 border-green-200 text-green-700 hover:bg-green-100`}
+                  className={`${btn} bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/60`}
                 >
                   <Truck size={12} className="inline" /> Complete
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => doAction(row.sales_order_id, salesApi.cancel, 'Order cancelled')}
-                  className={`${btn} bg-red-50 border-red-200 text-red-700 hover:bg-red-100`}
+                  className={`${btn} bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/60`}
                 >
                   <XCircle size={12} className="inline" /> Cancel
                 </button>
@@ -168,7 +147,7 @@ export default function SalesPage() {
               <button
                 disabled={busy}
                 onClick={() => doAction(row.sales_order_id, salesApi.returnOrder, 'Order returned (stock restored)')}
-                className={`${btn} bg-amber-50 border-amber-200 text-amber-800 hover:bg-amber-100`}
+                className={`${btn} bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60`}
               >
                 <Undo2 size={12} className="inline" /> Return
               </button>
@@ -183,19 +162,19 @@ export default function SalesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Sales Orders</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Sales Orders</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {filtered.length} order{filtered.length !== 1 ? 's' : ''}
           </p>
         </div>
         {canEdit && (
-          <button className="btn-primary flex items-center gap-2" onClick={handleCreate}>
+          <button className="btn-primary flex items-center gap-2" onClick={() => setModalOpen(true)}>
             <Plus size={16} /> New Sales Order
           </button>
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-4">
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-card border border-slate-200 dark:border-slate-800 p-4 mb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-2">
             <div className="relative">
@@ -209,11 +188,7 @@ export default function SalesPage() {
               />
             </div>
           </div>
-          <select
-            className="input"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
+          <select className="input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="">All statuses</option>
             <option value="draft">Draft</option>
             <option value="confirmed">Confirmed</option>
@@ -225,7 +200,7 @@ export default function SalesPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+        <div className="mb-4 rounded-md bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
@@ -237,20 +212,14 @@ export default function SalesPage() {
         emptyMessage="No sales orders yet. Click 'New Sales Order' to create one."
       />
 
-      <SalesOrderFormModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSaved={handleSaved}
-      />
+      <SalesOrderFormModal open={modalOpen} onClose={() => setModalOpen(false)} onSaved={handleSaved} />
 
       {toast && (
-        <div
-          className={`fixed top-6 right-6 z-50 rounded-md border px-4 py-3 shadow-lg ${
-            toast.type === 'error'
-              ? 'bg-red-50 border-red-300 text-red-800'
-              : 'bg-green-50 border-green-300 text-green-800'
-          }`}
-        >
+        <div className={`fixed top-6 right-6 z-50 rounded-md border px-4 py-3 shadow-lg ${
+          toast.type === 'error'
+            ? 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-800 text-red-800 dark:text-red-200'
+            : 'bg-green-50 dark:bg-green-950/60 border-green-300 dark:border-green-800 text-green-800 dark:text-green-200'
+        }`}>
           {toast.message}
         </div>
       )}

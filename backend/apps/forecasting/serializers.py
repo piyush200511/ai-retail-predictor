@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    DemandHistoryDaily, ForecastRun, DemandForecast, ReorderRecommendation,
+    DemandHistoryDaily, ForecastRun, DemandForecast, ReorderRecommendation,ModelMetric,
 )
 
 
@@ -83,3 +83,10 @@ class StartForecastSerializer(serializers.Serializer):
     forecast_horizon_days = serializers.IntegerField(min_value=1, max_value=180, default=30)
     training_start_date = serializers.DateField(required=False, allow_null=True)
     training_end_date = serializers.DateField(required=False, allow_null=True)
+class ModelMetricSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ModelMetric
+        fields = [
+            'metric_id', 'forecast_run', 'product', 'metric_name',
+            'metric_value', 'evaluation_start', 'evaluation_end',
+        ]

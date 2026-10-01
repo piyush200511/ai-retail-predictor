@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Play, RefreshCw } from 'lucide-react';
+import { Play, RefreshCw, TrendingUp } from 'lucide-react';
 import { forecastingApi } from '../api/endpoints';
 import DataTable from '../components/DataTable';
+import Panel from '../components/Panel';
+import ForecastChart from '../components/ForecastChart';
 import { useAuth } from '../context/AuthContext';
 import StartForecastModal from './forecasts/StartForecastModal';
 import ReorderTable from './forecasts/ReorderTable';
@@ -20,11 +22,12 @@ export default function ForecastsPage() {
   const [toast, setToast] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Data
   const [reorder, setReorder] = useState([]);
   const [runs, setRuns] = useState([]);
   const [forecasts, setForecasts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const [selectedPair, setSelectedPair] = useState(null);
 
   const loadAll = async () => {
     setLoading(true);
@@ -48,7 +51,7 @@ export default function ForecastsPage() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
+    const t = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(t);
   }, [toast]);
 
@@ -57,6 +60,31 @@ export default function ForecastsPage() {
     loadAll();
   };
 
+  // Build unique product/warehouse pairs from forecasts
+  const pairs = useMemo(() => {
+    const map = new Map();
+    forecasts.forEach((f) => {
+      const key = `${f.product_sku}__${f.warehouse_code}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          key,
+          product_sku: f.product_sku,
+          product_name: f.product_sku,
+          warehouse_code: f.warehouse_code,
+          product_id: f.product,
+          warehouse_id: f.warehouse,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [forecasts]);
+
+  useEffect(() => {
+    if (pairs.length > 0 && !selectedPair) {
+      setSelectedPair(pairs[0]);
+    }
+  }, [pairs, selectedPair]);
+
   const runColumns = [
     {
       key: 'run_name',
@@ -64,21 +92,32 @@ export default function ForecastsPage() {
       render: (row) => (
         <div>
           <div className="font-medium text-slate-800">{row.run_name}</div>
-          <div className="text-xs text-slate-500">{row.model_name} v{row.model_version || '1.0'}</div>
+          <div className="text-xs text-slate-500">
+            {row.model_name} v{row.model_version || '1.0'}
+          </div>
         </div>
       ),
     },
-    { key: 'forecast_horizon_days', label: 'Horizon', render: (r) => `${r.forecast_horizon_days}d` },
+    {
+      key: 'forecast_horizon_days',
+      label: 'Horizon',
+      render: (r) => `${r.forecast_horizon_days}d`,
+    },
     {
       key: 'status',
       label: 'Status',
       render: (r) => (
-        <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-          r.status === 'completed' ? 'bg-green-100 text-green-700' :
-          r.status === 'running' ? 'bg-blue-100 text-blue-700' :
-          r.status === 'failed' ? 'bg-red-100 text-red-700' :
-          'bg-slate-100 text-slate-500'
-        }`}>
+        <span
+          className={`text-xs px-2 py-0.5 rounded font-medium ${
+            r.status === 'completed'
+              ? 'bg-green-100 text-green-700'
+              : r.status === 'running'
+              ? 'bg-blue-100 text-blue-700'
+              : r.status === 'failed'
+              ? 'bg-red-100 text-red-700'
+              : 'bg-slate-100 text-slate-500'
+          }`}
+        >
           {r.status}
         </span>
       ),
@@ -123,15 +162,22 @@ export default function ForecastsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Demand Forecasting</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Demand Forecasting
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             ML-powered predictions and reorder recommendations
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={loadAll} className="btn-secondary flex items-center gap-2" disabled={loading}>
+          <button
+            onClick={loadAll}
+            className="btn-secondary flex items-center gap-2"
+            disabled={loading}
+          >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
@@ -152,7 +198,7 @@ export default function ForecastsPage() {
               onClick={() => setTab(t.key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
                 tab === t.key
-                  ? 'border-brand-600 text-brand-700'
+                  ? 'border-teal-600 text-teal-700'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -167,26 +213,28 @@ export default function ForecastsPage() {
         </nav>
       </div>
 
+      {/* Tab: Reorder */}
       {tab === 'reorder' && (
         <ReorderTable rows={reorder} loading={loading} onAction={loadAll} />
       )}
 
+      {/* Tab: Runs */}
       {tab === 'runs' && (
         <>
-          <div className="grid grid-cols-3 gap-4 mb-4">
-            <div className="card">
-              <div className="text-xs text-slate-500 uppercase">Total Runs</div>
-              <div className="text-2xl font-bold mt-1">{runs.length}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div className="stat-tile">
+              <div className="stat-label">Total Runs</div>
+              <div className="stat-value">{runs.length}</div>
             </div>
-            <div className="card">
-              <div className="text-xs text-slate-500 uppercase">Completed</div>
-              <div className="text-2xl font-bold mt-1 text-green-700">
+            <div className="stat-tile">
+              <div className="stat-label">Completed</div>
+              <div className="stat-value text-green-700">
                 {runs.filter((r) => r.status === 'completed').length}
               </div>
             </div>
-            <div className="card">
-              <div className="text-xs text-slate-500 uppercase">Failed</div>
-              <div className="text-2xl font-bold mt-1 text-red-700">
+            <div className="stat-tile">
+              <div className="stat-label">Failed</div>
+              <div className="stat-value text-red-700">
                 {runs.filter((r) => r.status === 'failed').length}
               </div>
             </div>
@@ -200,13 +248,71 @@ export default function ForecastsPage() {
         </>
       )}
 
+      {/* Tab: Forecasts */}
       {tab === 'forecasts' && (
-        <DataTable
-          columns={forecastColumns}
-          rows={forecasts.slice(0, 100)}
-          loading={loading}
-          emptyMessage="No predictions available. Run a forecast first."
-        />
+        <div className="space-y-6">
+          {pairs.length === 0 ? (
+            <div className="card text-center py-12 text-slate-400 text-sm">
+              No predictions available. Run a forecast first.
+            </div>
+          ) : (
+            <>
+              {/* Selector */}
+              <div className="flex flex-wrap items-center gap-3 bg-white rounded-lg border border-slate-200 shadow-card p-4">
+                <label className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  View forecast for:
+                </label>
+                <select
+                  className="input max-w-md"
+                  value={selectedPair?.key || ''}
+                  onChange={(e) => {
+                    const p = pairs.find((x) => x.key === e.target.value);
+                    setSelectedPair(p);
+                  }}
+                >
+                  {pairs.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.product_sku} — {p.product_name} @ {p.warehouse_code}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Chart panel */}
+              {selectedPair && (
+                <Panel
+                  title="Demand Forecast"
+                  subtitle={`${selectedPair.product_sku} · ${selectedPair.warehouse_code}`}
+                  actions={<TrendingUp size={16} />}
+                >
+                  <div className="p-5">
+                    <ForecastChart
+                      forecasts={forecasts.filter(
+                        (f) =>
+                          String(f.product) === String(selectedPair.product_id) &&
+                          String(f.warehouse) === String(selectedPair.warehouse_id)
+                      )}
+                      history={[]}
+                    />
+                  </div>
+                </Panel>
+              )}
+
+              {/* Raw table */}
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 mb-3 px-1">
+                  Forecast Rows
+                </h3>
+                <DataTable
+                  columns={forecastColumns}
+                  rows={forecasts.slice(0, 100)}
+                  loading={loading}
+                  emptyMessage="No predictions available."
+                />
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       <StartForecastModal

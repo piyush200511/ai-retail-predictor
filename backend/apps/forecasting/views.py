@@ -6,12 +6,12 @@ from rest_framework.response import Response
 
 from apps.authentication.permissions import IsAdmin, IsAnalystOrAdmin
 from .models import (
-    DemandHistoryDaily, ForecastRun, DemandForecast, ReorderRecommendation,
+    DemandHistoryDaily, ForecastRun, DemandForecast, ReorderRecommendation,ModelMetric,
 )
 from .serializers import (
     DemandHistorySerializer, ForecastRunSerializer,
     DemandForecastSerializer, ReorderRecommendationSerializer,
-    StartForecastSerializer,
+    StartForecastSerializer,ModelMetricSerializer,
 )
 from .services import rebuild_demand_history, generate_reorder_recommendations
 from ml_engine.pipelines.forecast_runner import run_forecast_for_pairs
@@ -122,3 +122,9 @@ class ReorderRecommendationViewSet(viewsets.ModelViewSet):
         rec.status = ReorderRecommendation.Status.REVIEWED
         rec.save(update_fields=['status'])
         return Response(self.get_serializer(rec).data)
+class ModelMetricViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = ModelMetric.objects.all()
+    serializer_class = ModelMetricSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['forecast_run', 'metric_name', 'product']
+    permission_classes = [IsAuthenticated]

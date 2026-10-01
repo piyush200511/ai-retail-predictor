@@ -3,6 +3,13 @@ import { authApi } from '../api/endpoints';
 
 const AuthContext = createContext(null);
 
+// We attach the toast function externally (because AuthProvider must be
+// inside ToastProvider, but toast is only available from a hook).
+let toastRef = null;
+export function _setToastRef(fn) {
+  toastRef = fn;
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem('user');
@@ -23,7 +30,7 @@ export function AuthProvider({ children }) {
         localStorage.setItem('user', JSON.stringify(res.data));
       })
       .catch(() => {
-        logout();
+        logout(true);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -35,14 +42,20 @@ export function AuthProvider({ children }) {
     localStorage.setItem('refresh_token', tokens.refresh);
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
+    toastRef?.(`Welcome back, ${user.name}!`, 'success');
     return user;
   };
 
-  const logout = () => {
+  const logout = (silent = false) => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('user');
     setUser(null);
+    if (!silent) {
+      toastRef?.("You've been logged out.", 'info');
+    } else {
+      toastRef?.('Session expired. Please log in again.', 'warning');
+    }
   };
 
   const hasRole = (...roles) => user && roles.includes(user.role);
