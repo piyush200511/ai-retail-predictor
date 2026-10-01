@@ -88,23 +88,15 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 class StockTransferViewSet(viewsets.ModelViewSet):
     """
     Warehouse-to-warehouse stock transfers.
-    - Create in draft
-    - /dispatch/ → in_transit (decrements source)
-    - /receive/  → received (increments destination)
-    - /cancel/   → cancelled (only drafts)
     """
     queryset = StockTransfer.objects.select_related(
         'from_warehouse', 'to_warehouse', 'requested_by'
     ).prefetch_related('items__product').all()
     serializer_class = StockTransferSerializer
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ['status', 'from_warehouse', 'to_warehouse']
-    ordering_fields = ['requested_at', 'dispatched_at', 'received_at']
-    ordering = ['-requested_at']
 
     def get_permissions(self):
         if self.action in ('create', 'update', 'partial_update', 'destroy',
-                           'dispatch', 'receive', 'cancel'):
+                           'dispatch_transfer_action', 'receive', 'cancel'):
             return [IsAdminOrInventoryManager()]
         return [IsAuthenticated()]
 
@@ -112,7 +104,7 @@ class StockTransferViewSet(viewsets.ModelViewSet):
         serializer.save(requested_by=self.request.user)
 
     @action(detail=True, methods=['post'], url_path='dispatch')
-    def dispatch(self, request, pk=None):
+    def dispatch_transfer_action(self, request, pk=None):
         transfer = self.get_object()
         transfer = dispatch_transfer(transfer=transfer, user=request.user)
         return Response(self.get_serializer(transfer).data)

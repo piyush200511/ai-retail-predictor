@@ -102,7 +102,7 @@ class StockTransferSerializer(serializers.ModelSerializer):
             'items',
         ]
         read_only_fields = [
-            'transfer_id', 'status', 'requested_by',
+            'transfer_id','transfer_number', 'status', 'requested_by',
             'requested_at', 'dispatched_at', 'received_at', 'cancelled_at',
         ]
 

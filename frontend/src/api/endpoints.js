@@ -59,6 +59,16 @@ export const inventoryApi = {
   transfers: (params) => api.get('/stock-transfers/', { params }),
 };
 
+// ---------------- Transfer ----------------
+export const transfersApi = {
+  list: (params) => api.get('/stock-transfers/', { params }),
+  get: (id) => api.get(`/stock-transfers/${id}/`),
+  create: (data) => api.post('/stock-transfers/', data),
+  dispatch: (id) => api.post(`/stock-transfers/${id}/dispatch/`),
+  receive: (id) => api.post(`/stock-transfers/${id}/receive/`),
+  cancel: (id) => api.post(`/stock-transfers/${id}/cancel/`),
+};
+
 // ---------------- Purchases ----------------
 export const purchasesApi = {
   list: (params) => api.get('/purchase-orders/', { params }),
