@@ -77,3 +77,85 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def clear_all(self, request):
         deleted, _ = self.get_queryset().delete()
         return Response({'deleted': deleted})
+
+
+from .models import Message
+from .serializers import MessageSerializer, MessageListSerializer
+
+
+class MessageViewSet(viewsets.ModelViewSet):
+    """
+    Inbox messages for the authenticated user.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Message.objects.filter(recipient=self.request.user).select_related('sender')
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return MessageListSerializer
+        return MessageSerializer
+
+    @action(detail=False, methods=['get'], url_path='unread-count')
+    def unread_count(self, request):
+        count = self.get_queryset().filter(is_read=False).count()
+        return Response({'count': count})
+
+    @action(detail=True, methods=['post'], url_path='mark-read')
+    def mark_read(self, request, pk=None):
+        msg = self.get_object()
+        if not msg.is_read:
+            msg.is_read = True
+            msg.read_at = timezone.now()
+            msg.save(update_fields=['is_read', 'read_at'])
+        return Response(self.get_serializer(msg).data)
+
+    @action(detail=True, methods=['post'], url_path='toggle-star')
+    def toggle_star(self, request, pk=None):
+        msg = self.get_object()
+        msg.is_starred = not msg.is_starred
+        msg.save(update_fields=['is_starred'])
+        return Response({'is_starred': msg.is_starred})
+
+    @action(detail=False, methods=['post'], url_path='mark-all-read')
+    def mark_all_read(self, request):
+        updated = self.get_queryset().filter(is_read=False).update(
+            is_read=True, read_at=timezone.now(),
+        )
+        return Response({'marked_read': updated})
+
+    @action(detail=False, methods=['post'], url_path='broadcast')
+    def broadcast(self, request):
+        """Admin-only: send a message to all users (or role-scoped)."""
+        if request.user.role != 'admin':
+            return Response({'detail': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
+
+        subject = request.data.get('subject', '').strip()
+        body = request.data.get('body', '').strip()
+        roles = request.data.get('roles') or None  # optional list
+
+        if not subject or not body:
+            return Response(
+                {'detail': 'Subject and body are required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from apps.authentication.models import User
+        recipients = User.objects.filter(is_active=True)
+        if roles:
+            recipients = recipients.filter(role__in=roles)
+
+        messages = [
+            Message(
+                recipient=u,
+                sender=request.user,
+                subject=subject,
+                body=body,
+                category='broadcast',
+                priority=request.data.get('priority', 'normal'),
+            )
+            for u in recipients
+        ]
+        Message.objects.bulk_create(messages)
+        return Response({'sent': len(messages)}, status=status.HTTP_201_CREATED)

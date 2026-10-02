@@ -75,3 +75,54 @@ class SystemSetting(models.Model):
 
     def __str__(self):
         return f'{self.setting_key} = {self.setting_value}'
+
+    
+
+class Message(models.Model):
+    class Category(models.TextChoices):
+        WELCOME = 'welcome', 'Welcome'
+        SYSTEM = 'system', 'System'
+        TIP = 'tip', 'Tip'
+        BROADCAST = 'broadcast', 'Broadcast'
+        DAILY_SUMMARY = 'daily_summary', 'Daily Summary'
+
+    class Priority(models.TextChoices):
+        LOW = 'low', 'Low'
+        NORMAL = 'normal', 'Normal'
+        HIGH = 'high', 'High'
+
+    message_id = models.BigAutoField(primary_key=True)
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='inbox_messages',
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='sent_messages',
+    )
+    subject = models.CharField(max_length=200)
+    body = models.TextField()
+    category = models.CharField(
+        max_length=30, choices=Category.choices,
+        default=Category.SYSTEM, db_index=True,
+    )
+    priority = models.CharField(
+        max_length=10, choices=Priority.choices,
+        default=Priority.NORMAL,
+    )
+    is_read = models.BooleanField(default=False, db_index=True)
+    is_starred = models.BooleanField(default=False)
+    link = models.CharField(max_length=200, blank=True, null=True)
+    metadata = models.JSONField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'inbox_messages'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', 'is_read', '-created_at']),
+        ]
+
+    def __str__(self):
+        return f'[{self.category}] → {self.recipient.email}: {self.subject}'
