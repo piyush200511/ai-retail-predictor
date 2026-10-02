@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Users, Warehouse, ShoppingCart,
   ShoppingBag, ArrowLeftRight, Bell, TrendingUp, BarChart3,
-  FileText, LogOut, Boxes, Search, Mail, ChevronDown,
+  FileText, LogOut, Boxes, Mail, ChevronDown,
   Menu, X, Settings, User as UserIcon, Moon, Sun,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -201,17 +201,7 @@ export default function AppLayout() {
               </div>
             </div>
 
-            {/* Search */}
-            <div className="hidden md:block relative">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-56 rounded-md bg-white/5 border border-white/10 pl-9 pr-3 py-1.5 text-sm text-white placeholder-slate-400 outline-none transition focus:bg-white/10 focus:border-teal-500/50"
-              />
-            </div>
-
-            {/* Mail */}
+           {/* Mail */}
             <button className="hidden sm:flex relative p-2 rounded-md hover:bg-white/10 transition">
               <Mail size={18} />
               <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-teal-400" />
@@ -286,12 +276,20 @@ export default function AppLayout() {
                     <div className="text-sm font-semibold truncate">{user?.name}</div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</div>
                   </div>
-                  <button className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <UserIcon size={15} /> Profile
-                  </button>
-                  <button className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800">
-                    <Settings size={15} /> Settings
-                  </button>
+                <NavLink
+  to="/profile"
+  onClick={() => setUserMenuOpen(false)}
+  className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+>
+  <UserIcon size={15} /> Profile
+</NavLink>
+<NavLink
+  to="/settings"
+  onClick={() => setUserMenuOpen(false)}
+  className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+>
+  <Settings size={15} /> Settings
+</NavLink>  
                   <div className="border-t border-slate-100 dark:border-slate-800">
                     <button
                       onClick={handleLogout}

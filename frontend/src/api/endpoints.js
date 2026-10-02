@@ -5,9 +5,17 @@ export const authApi = {
   login: (email, password) => api.post('/auth/login/', { email, password }),
   register: (data) => api.post('/auth/register/', data),
   profile: () => api.get('/auth/profile/'),
+  updateProfile: (data) => api.patch('/auth/profile/', data),
+  changePassword: (data) => api.post('/auth/change-password/', data),
   users: () => api.get('/auth/users/'),
 };
 
+export const settingsApi = {
+  list: () => api.get('/settings/'),
+  get: (key) => api.get(`/settings/${key}/`),
+  update: (key, data) => api.patch(`/settings/${key}/`, data),
+  bulkUpdate: (data) => api.post('/settings/bulk-update/', data),
+};
 // ---------------- Master Data ----------------
 export const suppliersApi = {
   list: (params) => api.get('/suppliers/', { params }),

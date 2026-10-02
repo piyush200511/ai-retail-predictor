@@ -16,7 +16,8 @@ import ForecastsPage from './pages/ForecastsPage';
 import AlertsPage from './pages/AlertsPage';
 import AnalyticsPage from './pages/AnalyticsPage';
 import ReportsPage from './pages/ReportsPage';
-
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
 function ToastBridge({ children }) {
   const toast = useToast();
   // Register toast dispatcher for AuthContext
@@ -51,6 +52,8 @@ export default function App() {
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
               <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
