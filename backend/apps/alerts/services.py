@@ -119,5 +119,46 @@ def evaluate_inventory_alerts(*, inventory: Inventory):
     else:
         if _resolve_open(product, warehouse, InventoryAlert.AlertType.OVERSTOCK):
             actions['resolved'].append('overstock')
+        # ---------- Notify roles on new alerts ----------
+    try:
+        from apps.core.services import notify_roles
+        if actions['opened']:
+            # Fetch newly opened alerts for messages
+            from .models import InventoryAlert
+            for aid in actions['opened']:
+                alert = InventoryAlert.objects.filter(pk=aid).first()
+                if not alert:
+                    continue
+                # Determine roles based on alert type
+                if alert.alert_type in ('stock_out', 'low_stock'):
+                    roles = ['inventory_manager', 'admin']
+                elif alert.alert_type == 'overstock':
+                    roles = ['inventory_manager']
+                else:
+                    roles = ['inventory_manager', 'analyst', 'admin']
 
+                # Map alert_type to notification_type
+                notif_type = {
+                    'low_stock': 'low_stock',
+                    'stock_out': 'stock_out_predicted',
+                    'overstock': 'low_stock',
+                    'unusual_demand': 'low_stock',
+                }.get(alert.alert_type, 'low_stock')
+
+                notify_roles(
+                    roles=roles,
+                    notification_type=notif_type,
+                    severity=alert.severity,
+                    title=f'{alert.alert_type.replace("_", " ").title()}: {alert.product.sku}',
+                    message=alert.message,
+                    link='/alerts',
+                    metadata={
+                        'alert_id': alert.alert_id,
+                        'product_id': alert.product_id,
+                        'warehouse_id': alert.warehouse_id,
+                    },
+                )
+    except Exception:
+        # Never break alert creation due to notification failure
+        pass
     return actions

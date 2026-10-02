@@ -165,5 +165,29 @@ def generate_reorder_recommendations(*, forecast_run):
             forecast_run=forecast_run,
         )
         created.append(rec)
-
+        # ---------- Notify on AI reorder recommendations ----------
+    try:
+        from apps.core.services import notify_roles
+        # Only notify for high/critical urgency
+        urgent = [r for r in created if r.urgency in ('high', 'critical')]
+        if urgent:
+            top = urgent[0]
+            notify_roles(
+                roles=['inventory_manager', 'purchase_manager', 'admin'],
+                notification_type='reorder_recommendation',
+                severity='warning' if top.urgency == 'high' else 'critical',
+                title=f'AI suggests reorder: {top.product.sku}',
+                message=(
+                    f'{len(urgent)} product(s) need reorder. '
+                    f'Top: {top.product.sku} @ {top.warehouse.warehouse_code} — '
+                    f'Suggest {top.suggested_order_quantity:.0f} units.'
+                ),
+                link='/forecasts',
+                metadata={
+                    'recommendation_id': top.recommendation_id,
+                    'count': len(urgent),
+                },
+            )
+    except Exception:
+        pass
     return created

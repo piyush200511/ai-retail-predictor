@@ -12,3 +12,17 @@ class SystemSettingSerializer(serializers.ModelSerializer):
             'description', 'updated_by', 'updated_by_email', 'updated_at',
         ]
         read_only_fields = ['setting_id', 'updated_by', 'updated_at']
+
+
+from .models import Notification
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = [
+            'notification_id', 'notification_type', 'severity',
+            'title', 'message', 'link', 'is_read',
+            'metadata', 'created_at', 'read_at',
+        ]
+        read_only_fields = fields

@@ -125,5 +125,27 @@ def receive_goods(*, po: PurchaseOrder, received_by, items_data, received_date=N
     elif any_received:
         po.status = PurchaseOrder.Status.PARTIALLY_RECEIVED
     po.save(update_fields=['status'])
-
+        # ---------- Notify on goods receipt ----------
+    try:
+        from apps.core.services import notify_roles
+        total_units = sum(
+            float(it.accepted_quantity) for it in receipt.items.all()
+        )
+        notify_roles(
+            roles=['inventory_manager', 'purchase_manager'],
+            notification_type='stock_received',
+            severity='info',
+            title=f'Goods received: {receipt.receipt_number}',
+            message=(
+                f'{len(receipt.items.all())} items · '
+                f'{total_units:.0f} units received at {po.warehouse.warehouse_code}.'
+            ),
+            link='/purchases',
+            metadata={
+                'receipt_id': receipt.receipt_id,
+                'po_id': po.purchase_order_id,
+            },
+        )
+    except Exception:
+        pass
     return receipt, po
