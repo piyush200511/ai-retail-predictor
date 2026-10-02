@@ -1,29 +1,45 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Package, Users, Warehouse, ShoppingCart,
-  ShoppingBag, ArrowLeftRight, Bell, TrendingUp, BarChart3,
-  FileText, LogOut, Boxes, Mail, ChevronDown,
-  Menu, X, Settings, User as UserIcon, Moon, Sun,
+  ArrowLeftRight,
+  BarChart3,
+  Bell,
+  Boxes,
+  ChevronDown,
+  FileText,
+  LayoutDashboard,
+  LogOut,
+  Mail,
+  Menu,
+  Moon,
+  Package,
+  Settings,
+  ShoppingBag,
+  ShoppingCart,
+  Sun,
+  TrendingUp,
+  User as UserIcon,
+  Users, Warehouse,
+  X,
 } from 'lucide-react';
+import { useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import Avatar from '../components/Avatar';
 
 const MENU_SECTIONS = [
   {
     label: 'Main',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'inventory_manager', 'sales_manager', 'purchase_manager', 'analyst'] },
-      { to: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'analyst', 'sales_manager'] },
+      { to: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'analyst'] },
       { to: '/reports', label: 'Reports', icon: FileText, roles: ['admin', 'analyst'] },
     ],
   },
   {
     label: 'Catalog',
     items: [
-      { to: '/products', label: 'Products', icon: Package, roles: ['admin', 'inventory_manager', 'sales_manager', 'purchase_manager', 'analyst'] },
-      { to: '/suppliers', label: 'Suppliers', icon: Users, roles: ['admin', 'purchase_manager'] },
+      { to: '/products', label: 'Products', icon: Package, roles: ['admin', 'inventory_manager', 'purchase_manager', 'sales_manager', 'analyst'] },
+      { to: '/suppliers', label: 'Suppliers', icon: Users, roles: ['admin', 'purchase_manager', 'inventory_manager'] },
       { to: '/warehouses', label: 'Warehouses', icon: Warehouse, roles: ['admin', 'inventory_manager'] },
     ],
   },
@@ -32,7 +48,7 @@ const MENU_SECTIONS = [
     items: [
       { to: '/inventory', label: 'Inventory', icon: Boxes, roles: ['admin', 'inventory_manager', 'analyst'] },
       { to: '/transfers', label: 'Transfers', icon: ArrowLeftRight, roles: ['admin', 'inventory_manager'] },
-      { to: '/purchases', label: 'Purchases', icon: ShoppingCart, roles: ['admin', 'purchase_manager'] },
+      { to: '/purchases', label: 'Purchases', icon: ShoppingCart, roles: ['admin', 'purchase_manager', 'inventory_manager'] },
       { to: '/sales', label: 'Sales', icon: ShoppingBag, roles: ['admin', 'sales_manager'] },
     ],
   },
@@ -201,7 +217,7 @@ export default function AppLayout() {
               </div>
             </div>
 
-           {/* Mail */}
+            {/* Mail */}
             <button className="hidden sm:flex relative p-2 rounded-md hover:bg-white/10 transition">
               <Mail size={18} />
               <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-teal-400" />
@@ -275,21 +291,24 @@ export default function AppLayout() {
                   <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800">
                     <div className="text-sm font-semibold truncate">{user?.name}</div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.email}</div>
+                    <span className="inline-block mt-2 text-[10px] uppercase tracking-wide px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300 capitalize">
+                      {user?.role?.replace('_', ' ')}
+                    </span>
                   </div>
-                <NavLink
-  to="/profile"
-  onClick={() => setUserMenuOpen(false)}
-  className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
->
-  <UserIcon size={15} /> Profile
-</NavLink>
-<NavLink
-  to="/settings"
-  onClick={() => setUserMenuOpen(false)}
-  className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
->
-  <Settings size={15} /> Settings
-</NavLink>  
+                  <NavLink
+                    to="/profile"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <UserIcon size={15} /> Profile
+                  </NavLink>
+                  <NavLink
+                    to="/settings"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800"
+                  >
+                    <Settings size={15} /> Settings
+                  </NavLink>
                   <div className="border-t border-slate-100 dark:border-slate-800">
                     <button
                       onClick={handleLogout}

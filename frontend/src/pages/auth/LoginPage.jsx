@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import IntroSplash from '../../components/IntroSplash';
+import QuickLogin from './QuickLogin';
 
 export default function LoginPage() {
   const { login, isAuthenticated } = useAuth();
@@ -18,12 +19,10 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [showIntro, setShowIntro] = useState(
-    () => !sessionStorage.getItem('intro_seen')
-  );
+  // Intro splash — always show on page load
+  const [showIntro, setShowIntro] = useState(true);
 
   const handleIntroFinish = () => {
-    sessionStorage.setItem('intro_seen', 'true');
     setShowIntro(false);
   };
 
@@ -45,12 +44,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemo = () => {
-    setEmail('admin@example.com');
-    setPassword('Admin@123');
-    setError('');
   };
 
   return (
@@ -122,13 +115,11 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* RIGHT PANEL — Login form (DARK THEME) */}
+        {/* RIGHT PANEL — Login form */}
         <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-950 to-black text-white">
-          {/* Subtle orbs */}
           <div className="absolute top-0 right-0 h-80 w-80 rounded-full bg-teal-500/10 blur-3xl" />
           <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
 
-          {/* Subtle grid */}
           <div
             className="absolute inset-0 opacity-[0.04]"
             style={{
@@ -146,9 +137,10 @@ export default function LoginPage() {
             <span className="font-bold text-white">AI Retail</span>
           </div>
 
-          <div className="relative z-10 flex items-center justify-center min-h-screen p-6 sm:p-10">
+          {/* Form — pushed up so dropdown has room */}
+          <div className="relative z-10 flex items-start justify-center min-h-screen p-6 sm:p-10 pt-20 sm:pt-24">
             <div className="w-full max-w-md">
-              <div className="mb-8">
+              <div className="mb-6">
                 <h2 className="text-3xl font-bold text-white tracking-tight">
                   Welcome back
                 </h2>
@@ -247,26 +239,16 @@ export default function LoginPage() {
                 </button>
               </form>
 
-              {/* Demo credentials chip */}
-              <div className="mt-6">
-                <button
-                  type="button"
-                  onClick={fillDemo}
-                  className="w-full text-left rounded-lg border border-dashed border-white/15 bg-white/5 backdrop-blur hover:bg-white/10 hover:border-teal-500/40 px-4 py-3 transition"
-                >
-                  <div className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-                    Demo credentials
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-sm">
-                    <span className="font-mono text-slate-200">
-                      admin@example.com · Admin@123
-                    </span>
-                    <span className="text-xs text-teal-400 font-medium">Click to autofill</span>
-                  </div>
-                </button>
-              </div>
+                            {/* Quick login dropdown */}
+              <QuickLogin
+                onFill={(em, pw) => {
+                  setEmail(em);
+                  setPassword(pw);
+                  setError('');
+                }}
+              />
 
-              <p className="mt-8 text-center text-xs text-slate-500">
+              <p className="mt-6 text-center text-xs text-slate-500">
                 © {new Date().getFullYear()} AI Retail Predictor · Internship Project
               </p>
             </div>

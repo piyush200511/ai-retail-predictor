@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 import {
@@ -14,6 +14,42 @@ import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
 
 const COLORS = ['#14b8a6', '#8b5cf6', '#f59e0b', '#3b82f6', '#ec4899', '#10b981'];
+
+/* ---------- Custom tooltip ---------- */
+function CustomTooltip({ active, payload, label, isCurrency = false, prefix = '' }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl px-3 py-2 text-xs">
+      {label && (
+        <div className="font-medium text-slate-500 dark:text-slate-400 mb-1">{label}</div>
+      )}
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: p.color || p.fill }}
+          />
+          <span className="capitalize">{p.name}:</span>
+          <span className="font-mono font-semibold">
+            {prefix}
+            {isCurrency
+              ? Number(p.value).toLocaleString('en-IN')
+              : Number(p.value).toLocaleString('en-IN')}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------- Format currency compact ---------- */
+function formatCurrency(v) {
+  const n = Number(v);
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(1)}Cr`;
+  if (n >= 100000) return `₹${(n / 100000).toFixed(1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(1)}K`;
+  return `₹${n}`;
+}
 
 export default function DashboardPage() {
   const { user, hasRole } = useAuth();
@@ -104,9 +140,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1">
               <div className="text-xs text-amber-800 dark:text-amber-300 uppercase font-semibold">Low Stock</div>
-              <div className="text-2xl font-bold text-amber-900 dark:text-amber-100 font-mono">
-                {kpis.inventory.low_stock_count}
-              </div>
+              <div className="text-2xl font-bold text-amber-900 dark:text-amber-100 font-mono">{kpis.inventory.low_stock_count}</div>
             </div>
             <Link to="/alerts" className="text-amber-700 dark:text-amber-400 hover:text-amber-900 dark:hover:text-amber-200">
               <ArrowRight size={18} />
@@ -119,9 +153,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex-1">
               <div className="text-xs text-red-800 dark:text-red-300 uppercase font-semibold">Out of Stock</div>
-              <div className="text-2xl font-bold text-red-900 dark:text-red-100 font-mono">
-                {kpis.inventory.stock_out_count}
-              </div>
+              <div className="text-2xl font-bold text-red-900 dark:text-red-100 font-mono">{kpis.inventory.stock_out_count}</div>
             </div>
             <Link to="/alerts" className="text-red-700 dark:text-red-400 hover:text-red-900 dark:hover:text-red-200">
               <ArrowRight size={18} />
@@ -135,7 +167,7 @@ export default function DashboardPage() {
             <div className="flex-1">
               <div className="text-xs text-teal-800 dark:text-teal-300 uppercase font-semibold">Purchase (30d)</div>
               <div className="text-xl font-bold text-teal-900 dark:text-teal-100 font-mono">
-                ₹{Number(kpis.purchasing?.total_purchase_value ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                {formatCurrency(kpis.purchasing?.total_purchase_value ?? 0)}
               </div>
             </div>
             <Link to="/purchases" className="text-teal-700 dark:text-teal-400 hover:text-teal-900 dark:hover:text-teal-200">
@@ -147,27 +179,54 @@ export default function DashboardPage() {
 
       {/* Sales trend + Top products */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Panel title="Sales Trend" subtitle="Last 30 days" className="lg:col-span-2" actions={<TrendingUp size={16} />}>
+        <Panel
+          title="Sales Trend"
+          subtitle="Revenue over the last 30 days"
+          className="lg:col-span-2"
+          actions={<TrendingUp size={16} />}
+        >
           <div className="p-5">
             {trend.length === 0 ? (
               <div className="text-slate-400 dark:text-slate-500 text-sm py-12 text-center">
                 No sales data yet. Complete some orders to see the trend.
               </div>
             ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={trend} margin={{ top: 5, right: 10, left: -15, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={trend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="tealLine" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#14b8a6" />
-                      <stop offset="100%" stopColor="#06b6d4" />
+                    <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#14b8a6" stopOpacity={0.5} />
+                      <stop offset="100%" stopColor="#14b8a6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(d) => d.slice(5)} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v) => [`₹${Number(v).toLocaleString('en-IN')}`, 'Revenue']} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                  <Line type="monotone" dataKey="revenue" stroke="url(#tealLine)" strokeWidth={2.5} dot={{ r: 3, fill: '#14b8a6', strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                </LineChart>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.4} vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    tickFormatter={(d) => d.slice(5)}
+                    axisLine={{ stroke: '#cbd5e1' }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#94a3b8' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={formatCurrency}
+                  />
+                  <Tooltip
+                    content={<CustomTooltip isCurrency prefix="₹" />}
+                    cursor={{ stroke: '#14b8a6', strokeWidth: 1, strokeDasharray: '3 3' }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#14b8a6"
+                    strokeWidth={2.5}
+                    fill="url(#salesGradient)"
+                    activeDot={{ r: 6, fill: '#14b8a6', stroke: '#fff', strokeWidth: 2 }}
+                    animationDuration={1200}
+                  />
+                </AreaChart>
               </ResponsiveContainer>
             )}
           </div>
@@ -178,14 +237,34 @@ export default function DashboardPage() {
             {topProducts.length === 0 ? (
               <div className="text-slate-400 dark:text-slate-500 text-sm py-12 text-center">No data yet.</div>
             ) : (
-              <ResponsiveContainer width="100%" height={180}>
-                <BarChart data={topProducts.slice(0, 5)} layout="vertical" margin={{ top: 0, right: 10, left: -10, bottom: 0 }}>
-                  <XAxis type="number" hide />
-                  <YAxis type="category" dataKey="sku" tick={{ fontSize: 10, fill: '#64748b' }} width={90} axisLine={false} tickLine={false} />
-                  <Tooltip formatter={(v) => `₹${Number(v).toLocaleString('en-IN')}`} contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                  <Bar dataKey="revenue" radius={[0, 4, 4, 0]}>
-                    {topProducts.slice(0, 5).map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart
+                  data={topProducts.slice(0, 6)}
+                  layout="vertical"
+                  margin={{ top: 0, right: 20, left: 0, bottom: 0 }}
+                >
+                  <defs>
+                    {COLORS.map((c, i) => (
+                      <linearGradient key={i} id={`barGrad${i}`} x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor={c} stopOpacity={0.9} />
+                        <stop offset="100%" stopColor={c} stopOpacity={0.6} />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.3} horizontal={false} />
+                  <XAxis type="number" hide tickFormatter={formatCurrency} />
+                  <YAxis
+                    type="category"
+                    dataKey="sku"
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 500 }}
+                    width={110}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip content={<CustomTooltip isCurrency prefix="₹" />} />
+                  <Bar dataKey="revenue" radius={[0, 6, 6, 0]} animationDuration={1000}>
+                    {topProducts.slice(0, 6).map((_, i) => (
+                      <Cell key={i} fill={`url(#barGrad${i % COLORS.length})`} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -200,12 +279,10 @@ export default function DashboardPage() {
         <Panel title="Open Alerts" subtitle={`${alerts.length} active`} actions={<Link to="/alerts" className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1">View all <ArrowRight size={12} /></Link>}>
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {alerts.length === 0 ? (
-              <div className="p-6 text-center text-slate-400 dark:text-slate-500 text-sm">
-                ✅ All clear — no open alerts
-              </div>
+              <div className="p-6 text-center text-slate-400 dark:text-slate-500 text-sm">✅ All clear — no open alerts</div>
             ) : (
               alerts.map((a) => (
-                <div key={a.alert_id} className="px-5 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                <div key={a.alert_id} className="px-5 py-3 flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                   <div className={`h-2 w-2 rounded-full mt-1.5 flex-shrink-0 ${a.severity === 'critical' ? 'bg-red-500' : a.severity === 'warning' ? 'bg-amber-500' : 'bg-blue-500'}`} />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">
@@ -230,7 +307,7 @@ export default function DashboardPage() {
               movements.map((m) => {
                 const isIn = Number(m.quantity) > 0;
                 return (
-                  <div key={m.movement_id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                  <div key={m.movement_id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isIn ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400' : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'}`}>
                       {isIn ? '⬇' : '⬆'}
                     </div>
