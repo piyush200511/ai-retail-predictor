@@ -143,3 +143,21 @@ export const reportsApi = {
   movementsCsv: () => `${API_BASE_URL}/reports/stock-movements.csv`,
   forecastsCsv: () => `${API_BASE_URL}/reports/forecasts.csv`,
 };
+
+export const notificationsApi = {
+  list: (params) => api.get('/notifications/', { params }),
+  unreadCount: () => api.get('/notifications/unread-count/'),
+  markRead: (id) => api.post(`/notifications/${id}/mark-read/`),
+  markAllRead: () => api.post('/notifications/mark-all-read/'),
+  clearAll: () => api.post('/notifications/clear-all/'),
+};
+
+export const messagesApi = {
+  list: (params) => api.get('/messages/', { params }),
+  get: (id) => api.get(`/messages/${id}/`),
+  unreadCount: () => api.get('/messages/unread-count/'),
+  markRead: (id) => api.post(`/messages/${id}/mark-read/`),
+  toggleStar: (id) => api.post(`/messages/${id}/toggle-star/`),
+  markAllRead: () => api.post('/messages/mark-all-read/'),
+  broadcast: (data) => api.post('/messages/broadcast/', data),
+};
