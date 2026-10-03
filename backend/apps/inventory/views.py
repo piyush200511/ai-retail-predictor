@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
 from apps.authentication.permissions import IsAdminOrInventoryManager
+from apps.core.services import notify_activity
 from apps.products.models import Product
 from apps.warehouses.models import Warehouse
 from .models import Inventory, StockMovement, StockTransfer
@@ -13,7 +14,9 @@ from .serializers import (
     InventorySerializer, StockMovementSerializer, StockAdjustmentSerializer,
     StockTransferSerializer,
 )
-from .services import stock_in, stock_out, dispatch_transfer, receive_transfer, cancel_transfer
+from .services import (
+    stock_in, stock_out, dispatch_transfer, receive_transfer, cancel_transfer,
+)
 from .models import StockMovement as SM
 
 
@@ -88,6 +91,10 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
 class StockTransferViewSet(viewsets.ModelViewSet):
     """
     Warehouse-to-warehouse stock transfers.
+    - Create in draft
+    - /dispatch/ → in_transit (decrements source)
+    - /receive/  → received (increments destination)
+    - /cancel/   → cancelled (only drafts)
     """
     queryset = StockTransfer.objects.select_related(
         'from_warehouse', 'to_warehouse', 'requested_by'
@@ -101,18 +108,60 @@ class StockTransferViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
-        serializer.save(requested_by=self.request.user)
+        transfer = serializer.save(requested_by=self.request.user)
+        try:
+            notify_activity(
+                entity='transfer',
+                action='create',
+                actor=self.request.user,
+                title=f'New transfer: {transfer.transfer_number}',
+                message=(
+                    f'{transfer.from_warehouse.warehouse_code} → '
+                    f'{transfer.to_warehouse.warehouse_code} created by {self.request.user.name}.'
+                ),
+                metadata={'transfer_id': transfer.transfer_id},
+            )
+        except Exception:
+            pass
 
     @action(detail=True, methods=['post'], url_path='dispatch')
     def dispatch_transfer_action(self, request, pk=None):
         transfer = self.get_object()
         transfer = dispatch_transfer(transfer=transfer, user=request.user)
+        try:
+            notify_activity(
+                entity='transfer',
+                action='dispatch',
+                actor=request.user,
+                title=f'Transfer dispatched: {transfer.transfer_number}',
+                message=(
+                    f'{transfer.from_warehouse.warehouse_code} → '
+                    f'{transfer.to_warehouse.warehouse_code} dispatched by {request.user.name}.'
+                ),
+                metadata={'transfer_id': transfer.transfer_id},
+            )
+        except Exception:
+            pass
         return Response(self.get_serializer(transfer).data)
 
     @action(detail=True, methods=['post'], url_path='receive')
     def receive(self, request, pk=None):
         transfer = self.get_object()
         transfer = receive_transfer(transfer=transfer, user=request.user)
+        try:
+            notify_activity(
+                entity='transfer',
+                action='receive',
+                actor=request.user,
+                title=f'Transfer received: {transfer.transfer_number}',
+                message=(
+                    f'{transfer.transfer_number} received at '
+                    f'{transfer.to_warehouse.warehouse_code} by {request.user.name}.'
+                ),
+                metadata={'transfer_id': transfer.transfer_id},
+            )
+        except Exception:
+            pass
         return Response(self.get_serializer(transfer).data)
 
     @action(detail=True, methods=['post'], url_path='cancel')

@@ -103,8 +103,15 @@ export default function NotificationBell() {
   };
 
   const formatTime = (iso) => {
-    const d = new Date(iso);
-    const diff = (Date.now() - d.getTime()) / 1000;
+    if (!iso) return '';
+    // Ensure ISO is parsed as UTC if no timezone suffix
+    const normalizedIso = iso.includes('Z') || iso.includes('+') ? iso : iso + 'Z';
+    const d = new Date(normalizedIso);
+    const now = new Date();
+    const diffMs = now - d;
+    const diff = Math.floor(diffMs / 1000);
+
+    if (diff < 0) return 'just now'; // future date — clock skew, treat as now
     if (diff < 60) return 'just now';
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;

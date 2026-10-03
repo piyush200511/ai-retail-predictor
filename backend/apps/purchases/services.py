@@ -77,7 +77,6 @@ def receive_goods(*, po: PurchaseOrder, received_by, items_data, received_date=N
                 'items': f'For product {product_id}: accepted + rejected must equal received.'
             })
 
-        # Find the matching PO line
         po_item = po.items.filter(product_id=product_id).first()
         if not po_item:
             raise ValidationError({'items': f'Product {product_id} is not in this PO.'})
@@ -125,19 +124,20 @@ def receive_goods(*, po: PurchaseOrder, received_by, items_data, received_date=N
     elif any_received:
         po.status = PurchaseOrder.Status.PARTIALLY_RECEIVED
     po.save(update_fields=['status'])
-        # ---------- Notify on goods receipt ----------
+
+    # ---------- Notify on goods received ----------
     try:
         from apps.core.services import notify_roles
         total_units = sum(
             float(it.accepted_quantity) for it in receipt.items.all()
         )
         notify_roles(
-            roles=['inventory_manager', 'purchase_manager'],
+            roles=['admin', 'analyst', 'purchase_manager', 'inventory_manager'],
             notification_type='stock_received',
             severity='info',
             title=f'Goods received: {receipt.receipt_number}',
             message=(
-                f'{len(receipt.items.all())} items · '
+                f'{len(receipt.items.all())} item(s) · '
                 f'{total_units:.0f} units received at {po.warehouse.warehouse_code}.'
             ),
             link='/purchases',
@@ -148,4 +148,5 @@ def receive_goods(*, po: PurchaseOrder, received_by, items_data, received_date=N
         )
     except Exception:
         pass
+
     return receipt, po

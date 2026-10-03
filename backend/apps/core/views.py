@@ -159,3 +159,56 @@ class MessageViewSet(viewsets.ModelViewSet):
         ]
         Message.objects.bulk_create(messages)
         return Response({'sent': len(messages)}, status=status.HTTP_201_CREATED)
+    from django.http import HttpResponse
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.views import APIView
+
+from .csv_import import import_csv
+from .csv_handlers import TEMPLATES, TEMPLATE_SAMPLES
+
+
+class CSVImportView(APIView):
+    """POST /api/import/<type>/  with file upload"""
+    permission_classes = [IsAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, import_type):
+        if 'file' not in request.FILES:
+            return Response({'detail': 'No file uploaded.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        file_obj = request.FILES['file']
+        if not file_obj.name.lower().endswith('.csv'):
+            return Response({'detail': 'Only .csv files allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = import_csv(
+                handler_name=import_type,
+                file_obj=file_obj,
+                user=request.user,
+            )
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(result, status=status.HTTP_201_CREATED)
+
+
+class CSVTemplateView(APIView):
+    """GET /api/import/<type>/template/  → download a sample CSV"""
+    permission_classes = [IsAdmin]
+
+    def get(self, request, import_type):
+        columns = TEMPLATES.get(import_type)
+        if not columns:
+            return Response({'detail': f'Unknown import type: {import_type}'}, status=status.HTTP_404_NOT_FOUND)
+
+        sample = TEMPLATE_SAMPLES.get(import_type, [])
+
+        import csv
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{import_type}_template.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow(columns)
+        if sample:
+            writer.writerow(sample)
+        return response

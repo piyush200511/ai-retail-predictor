@@ -71,74 +71,36 @@ export default function CustomerFormModal({ open, onClose, onSaved, customer }) 
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+          <div className="rounded-md bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 text-sm text-red-700 dark:text-red-300">
             {error}
           </div>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Customer Code *">
-            <input
-              className="input"
-              value={form.customer_code}
-              onChange={(e) => update('customer_code', e.target.value)}
-              required
-            />
+            <input className="input" value={form.customer_code} onChange={(e) => update('customer_code', e.target.value)} required />
           </FormField>
-
           <FormField label="Customer Name *">
-            <input
-              className="input"
-              value={form.customer_name}
-              onChange={(e) => update('customer_name', e.target.value)}
-              required
-            />
+            <input className="input" value={form.customer_name} onChange={(e) => update('customer_name', e.target.value)} required />
           </FormField>
-
           <FormField label="Phone">
-            <input
-              className="input"
-              value={form.phone}
-              onChange={(e) => update('phone', e.target.value)}
-            />
+            <input className="input" value={form.phone} onChange={(e) => update('phone', e.target.value)} />
           </FormField>
-
           <FormField label="Email">
-            <input
-              type="email"
-              className="input"
-              value={form.email}
-              onChange={(e) => update('email', e.target.value)}
-            />
+            <input type="email" className="input" value={form.email} onChange={(e) => update('email', e.target.value)} />
           </FormField>
-
           <FormField label="City">
-            <input
-              className="input"
-              value={form.city}
-              onChange={(e) => update('city', e.target.value)}
-            />
+            <input className="input" value={form.city} onChange={(e) => update('city', e.target.value)} />
           </FormField>
-
           <FormField label="Active">
             <label className="flex items-center gap-2 mt-2">
-              <input
-                type="checkbox"
-                checked={form.is_active}
-                onChange={(e) => update('is_active', e.target.checked)}
-              />
-              <span className="text-sm text-slate-600">Customer is active</span>
+              <input type="checkbox" checked={form.is_active} onChange={(e) => update('is_active', e.target.checked)} />
+              <span className="text-sm text-slate-600 dark:text-slate-400">Customer is active</span>
             </label>
           </FormField>
-
           <div className="md:col-span-2">
             <FormField label="Address">
-              <textarea
-                className="input"
-                rows={2}
-                value={form.address}
-                onChange={(e) => update('address', e.target.value)}
-              />
+              <textarea className="input" rows={2} value={form.address} onChange={(e) => update('address', e.target.value)} />
             </FormField>
           </div>
         </div>

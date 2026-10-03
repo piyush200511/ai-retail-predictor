@@ -67,15 +67,28 @@ def complete_sales_order(*, so: SalesOrder, user=None):
     so.status = SalesOrder.Status.COMPLETED
     so.completed_at = timezone.now()
     so.save(update_fields=['status', 'completed_at'])
-        # Update demand history
+
+    # Update demand history for this date
     try:
         from apps.forecasting.services import rebuild_demand_history
-        rebuild_demand_history(
-            start_date=so.order_date,
-            end_date=so.order_date,
+        rebuild_demand_history(start_date=so.order_date, end_date=so.order_date)
+    except Exception:
+        pass
+
+    # Notify on order completion
+    try:
+        from apps.core.services import notify_activity
+        notify_activity(
+            entity='sale',
+            action='complete',
+            actor=user,
+            title=f'Order completed: {so.order_number}',
+            message=f'{so.order_number} — ₹{so.total_amount} completed by {user.name if user else "system"}.',
+            metadata={'sales_order_id': so.sales_order_id},
         )
     except Exception:
         pass
+
     return so
 
 

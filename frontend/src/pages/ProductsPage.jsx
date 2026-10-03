@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Upload } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { productsApi, categoriesApi } from '../api/endpoints';
 import DataTable from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +8,7 @@ import ProductFormModal from './products/ProductFormModal';
 
 export default function ProductsPage() {
   const { hasRole } = useAuth();
+  const navigate = useNavigate();
   const canEdit = hasRole('admin', 'inventory_manager');
 
   const [products, setProducts] = useState([]);
@@ -16,7 +18,6 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
 
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [toast, setToast] = useState(null);
@@ -43,7 +44,6 @@ export default function ProductsPage() {
       .catch(() => setCategories([]));
   }, []);
 
-  // Auto-clear toast
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3000);
@@ -82,7 +82,7 @@ export default function ProductsPage() {
       key: 'sku',
       label: 'SKU',
       render: (row) => (
-        <span className="font-mono text-xs text-slate-600">{row.sku}</span>
+        <span className="font-mono text-xs text-slate-600 dark:text-slate-400">{row.sku}</span>
       ),
     },
     {
@@ -90,8 +90,8 @@ export default function ProductsPage() {
       label: 'Product',
       render: (row) => (
         <div>
-          <div className="font-medium text-slate-800">{row.product_name}</div>
-          <div className="text-xs text-slate-500">{row.brand_name || '—'}</div>
+          <div className="font-medium text-slate-800 dark:text-slate-100">{row.product_name}</div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">{row.brand_name || '—'}</div>
         </div>
       ),
     },
@@ -122,8 +122,8 @@ export default function ProductsPage() {
         <span
           className={`text-xs px-2 py-0.5 rounded ${
             row.is_active
-              ? 'bg-green-100 text-green-700'
-              : 'bg-slate-100 text-slate-500'
+              ? 'bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
           }`}
         >
           {row.is_active ? 'Active' : 'Inactive'}
@@ -137,7 +137,7 @@ export default function ProductsPage() {
         canEdit ? (
           <button
             onClick={() => handleEdit(row)}
-            className="text-xs px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700"
+            className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
           >
             Edit
           </button>
@@ -147,31 +147,36 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Products</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Products</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {filtered.length} product{filtered.length !== 1 ? 's' : ''}
           </p>
         </div>
         {canEdit && (
-          <button
-            className="btn-primary flex items-center gap-2"
-            onClick={handleAdd}
-          >
-            <Plus size={16} /> Add Product
-          </button>
+          <div className="flex gap-2">
+            <button
+              className="btn-secondary flex items-center gap-2"
+              onClick={() => navigate('/import')}
+            >
+              <Upload size={16} /> Import CSV
+            </button>
+            <button
+              className="btn-primary flex items-center gap-2"
+              onClick={handleAdd}
+            >
+              <Plus size={16} /> Add Product
+            </button>
+          </div>
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-4">
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-card border border-slate-200 dark:border-slate-800 p-4 mb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="md:col-span-2">
             <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search by SKU or product name..."
@@ -199,7 +204,7 @@ export default function ProductsPage() {
       </div>
 
       {error && (
-        <div className="mb-4 rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+        <div className="mb-4 rounded-md bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 text-sm text-red-700 dark:text-red-300">
           {error}
         </div>
       )}
@@ -223,7 +228,7 @@ export default function ProductsPage() {
       />
 
       {toast && (
-        <div className="fixed top-6 right-6 z-50 rounded-md border bg-green-50 border-green-300 text-green-800 px-4 py-3 shadow-lg">
+        <div className="fixed top-6 right-6 z-50 rounded-md border bg-green-50 dark:bg-green-950/60 border-green-300 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 shadow-lg">
           {toast.message}
         </div>
       )}

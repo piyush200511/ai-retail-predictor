@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.authentication.permissions import IsAdmin
+from apps.core.services import notify_activity
 from .models import Warehouse, UserWarehouse
 from .serializers import (
     WarehouseSerializer, WarehouseListSerializer,
@@ -24,18 +25,41 @@ class WarehouseViewSet(viewsets.ModelViewSet):
         return WarehouseSerializer
 
     def get_permissions(self):
-        # Warehouse CRUD is Admin-only
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsAdmin()]
         return [IsAuthenticated()]
 
+    def perform_create(self, serializer):
+        w = serializer.save()
+        try:
+            notify_activity(
+                entity='warehouse',
+                action='create',
+                actor=self.request.user,
+                title=f'New warehouse: {w.warehouse_code}',
+                message=f'{w.warehouse_name} was added by {self.request.user.name}.',
+                metadata={'warehouse_id': w.warehouse_id},
+            )
+        except Exception:
+            pass
+
+    def perform_destroy(self, instance):
+        code, name = instance.warehouse_code, instance.warehouse_name
+        try:
+            notify_activity(
+                entity='warehouse',
+                action='delete',
+                actor=self.request.user,
+                title=f'Warehouse deleted: {code}',
+                message=f'{name} was removed by {self.request.user.name}.',
+                severity='warning',
+            )
+        except Exception:
+            pass
+        instance.delete()
+
 
 class UserWarehouseViewSet(viewsets.ModelViewSet):
-    """
-    Warehouse assignments.
-    - Admin: full CRUD
-    - Non-admin: read-only, only their own assignments
-    """
     queryset = UserWarehouse.objects.select_related('user', 'warehouse').all()
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['user', 'warehouse', 'is_primary']
@@ -56,5 +80,4 @@ class UserWarehouseViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.role == 'admin':
             return qs
-        # Non-admins can only see their own assignments
         return qs.filter(user=user)

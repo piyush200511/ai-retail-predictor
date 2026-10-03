@@ -4,7 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from apps.authentication.permissions import IsAdminOrSalesManager, IsAdmin
+from apps.authentication.permissions import IsAdminOrSalesManager
+from apps.core.services import notify_activity
 from .models import Customer, SalesOrder
 from .serializers import (
     CustomerSerializer, CustomerListSerializer,
@@ -33,6 +34,35 @@ class CustomerViewSet(viewsets.ModelViewSet):
         if self.action in ('create', 'update', 'partial_update', 'destroy'):
             return [IsAdminOrSalesManager()]
         return [IsAuthenticated()]
+
+    def perform_create(self, serializer):
+        c = serializer.save()
+        try:
+            notify_activity(
+                entity='customer',
+                action='create',
+                actor=self.request.user,
+                title=f'New customer: {c.customer_code}',
+                message=f'{c.customer_name} was added by {self.request.user.name}.',
+                metadata={'customer_id': c.customer_id},
+            )
+        except Exception:
+            pass
+
+    def perform_destroy(self, instance):
+        code, name = instance.customer_code, instance.customer_name
+        try:
+            notify_activity(
+                entity='customer',
+                action='delete',
+                actor=self.request.user,
+                title=f'Customer deleted: {code}',
+                message=f'{name} was removed by {self.request.user.name}.',
+                severity='warning',
+            )
+        except Exception:
+            pass
+        instance.delete()
 
 
 class SalesOrderViewSet(viewsets.ModelViewSet):

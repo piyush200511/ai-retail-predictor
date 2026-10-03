@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
 
 from apps.authentication.permissions import IsAdminOrInventoryManager
+from apps.core.services import notify_activity
 from .models import Category, Brand, Unit, Product, ProductSupplier
 from .serializers import (
     CategorySerializer, BrandSerializer, UnitSerializer,
@@ -11,7 +12,6 @@ from .serializers import (
 )
 
 
-# ---------------- Category ----------------
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
@@ -26,7 +26,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
 
-# ---------------- Brand ----------------
 class BrandViewSet(viewsets.ModelViewSet):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
@@ -41,7 +40,6 @@ class BrandViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
 
-# ---------------- Unit ----------------
 class UnitViewSet(viewsets.ModelViewSet):
     queryset = Unit.objects.all()
     serializer_class = UnitSerializer
@@ -55,7 +53,6 @@ class UnitViewSet(viewsets.ModelViewSet):
         return [IsAuthenticated()]
 
 
-# ---------------- Product ----------------
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.select_related('category', 'brand', 'unit').all()
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -74,8 +71,36 @@ class ProductViewSet(viewsets.ModelViewSet):
             return [IsAdminOrInventoryManager()]
         return [IsAuthenticated()]
 
+    def perform_create(self, serializer):
+        product = serializer.save()
+        try:
+            notify_activity(
+                entity='product',
+                action='create',
+                actor=self.request.user,
+                title=f'New product: {product.sku}',
+                message=f'{product.product_name} was added by {self.request.user.name}.',
+                metadata={'product_id': product.product_id},
+            )
+        except Exception:
+            pass
 
-# ---------------- Product ↔ Supplier link ----------------
+    def perform_destroy(self, instance):
+        sku, name = instance.sku, instance.product_name
+        try:
+            notify_activity(
+                entity='product',
+                action='delete',
+                actor=self.request.user,
+                title=f'Product deleted: {sku}',
+                message=f'{name} was removed by {self.request.user.name}.',
+                severity='warning',
+            )
+        except Exception:
+            pass
+        instance.delete()
+
+
 class ProductSupplierViewSet(viewsets.ModelViewSet):
     queryset = ProductSupplier.objects.select_related('product', 'supplier').all()
     filter_backends = [DjangoFilterBackend]

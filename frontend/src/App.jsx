@@ -19,6 +19,8 @@ import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
 import SettingsPage from './pages/SettingsPage';
 import InboxPage from './pages/InboxPage';
+import CustomersPage from './pages/CustomersPage';
+import ImportPage from './pages/ImportPage';
 function ToastBridge({ children }) {
   const toast = useToast();
   // Register toast dispatcher for AuthContext
@@ -56,6 +58,8 @@ export default function App() {
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/inbox" element={<InboxPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/import" element={<ImportPage />} />
             </Route>
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

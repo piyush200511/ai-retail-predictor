@@ -105,8 +105,10 @@ export const salesApi = {
 
   // Customers
   customers: (params) => api.get('/customers/', { params }),
+  getCustomer: (id) => api.get(`/customers/${id}/`),
   createCustomer: (data) => api.post('/customers/', data),
   updateCustomer: (id, data) => api.put(`/customers/${id}/`, data),
+  removeCustomer: (id) => api.delete(`/customers/${id}/`),
 };
 // ---------------- Alerts ----------------
 export const alertsApi = {
@@ -160,4 +162,12 @@ export const messagesApi = {
   toggleStar: (id) => api.post(`/messages/${id}/toggle-star/`),
   markAllRead: () => api.post('/messages/mark-all-read/'),
   broadcast: (data) => api.post('/messages/broadcast/', data),
+};
+
+export const importApi = {
+  upload: (type, formData) =>
+    api.post(`/import/${type}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+  templateUrl: (type) => `http://127.0.0.1:8000/api/import/${type}/template/`,
 };
