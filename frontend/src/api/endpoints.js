@@ -1,5 +1,8 @@
 import api from './client';
 
+// Production backend URL — used for direct link downloads (CSV exports, templates)
+export const API_BASE_URL = 'https://ai-retail-predictor-production.up.railway.app/api';
+
 // ---------------- Auth ----------------
 export const authApi = {
   login: (email, password) => api.post('/auth/login/', { email, password }),
@@ -16,6 +19,7 @@ export const settingsApi = {
   update: (key, data) => api.patch(`/settings/${key}/`, data),
   bulkUpdate: (data) => api.post('/settings/bulk-update/', data),
 };
+
 // ---------------- Master Data ----------------
 export const suppliersApi = {
   list: (params) => api.get('/suppliers/', { params }),
@@ -90,6 +94,7 @@ export const purchasesApi = {
   receive: (id, data) => api.post(`/purchase-orders/${id}/receive/`, data),
   receipts: (params) => api.get('/goods-receipts/', { params }),
 };
+
 // ---------------- Sales ----------------
 export const salesApi = {
   // Orders
@@ -110,6 +115,7 @@ export const salesApi = {
   updateCustomer: (id, data) => api.put(`/customers/${id}/`, data),
   removeCustomer: (id) => api.delete(`/customers/${id}/`),
 };
+
 // ---------------- Alerts ----------------
 export const alertsApi = {
   list: (params) => api.get('/alerts/', { params }),
@@ -129,6 +135,7 @@ export const forecastingApi = {
   dismissReorder: (id) => api.post(`/reorder-recommendations/${id}/dismiss/`),
   reviewReorder: (id) => api.post(`/reorder-recommendations/${id}/review/`),
 };
+
 // ---------------- Analytics ----------------
 export const analyticsApi = {
   dashboard: () => api.get('/analytics/dashboard/'),
@@ -137,8 +144,7 @@ export const analyticsApi = {
   purchasing: () => api.get('/analytics/purchasing/'),
 };
 
-// ---------------- Reports ----------------
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+// ---------------- Reports (CSV downloads) ----------------
 export const reportsApi = {
   salesCsv: () => `${API_BASE_URL}/reports/sales.csv`,
   inventoryCsv: () => `${API_BASE_URL}/reports/inventory.csv`,
@@ -146,6 +152,7 @@ export const reportsApi = {
   forecastsCsv: () => `${API_BASE_URL}/reports/forecasts.csv`,
 };
 
+// ---------------- Notifications ----------------
 export const notificationsApi = {
   list: (params) => api.get('/notifications/', { params }),
   unreadCount: () => api.get('/notifications/unread-count/'),
@@ -154,6 +161,7 @@ export const notificationsApi = {
   clearAll: () => api.post('/notifications/clear-all/'),
 };
 
+// ---------------- Inbox Messages ----------------
 export const messagesApi = {
   list: (params) => api.get('/messages/', { params }),
   get: (id) => api.get(`/messages/${id}/`),
@@ -164,10 +172,11 @@ export const messagesApi = {
   broadcast: (data) => api.post('/messages/broadcast/', data),
 };
 
+// ---------------- CSV Import ----------------
 export const importApi = {
   upload: (type, formData) =>
     api.post(`/import/${type}/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
-  templateUrl: (type) => `http://127.0.0.1:8000/api/import/${type}/template/`,
+  templateUrl: (type) => `${API_BASE_URL}/import/${type}/template/`,
 };
