@@ -1,7 +1,11 @@
 import api from './client';
 
-// Production backend URL — used for direct link downloads (CSV exports, templates)
-export const API_BASE_URL = 'https://ai-retail-predictor-production.up.railway.app/api';
+// Smart URL detection — same logic as client.js
+export const API_BASE_URL =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://127.0.0.1:8000/api'
+    : 'https://ai-retail-predictor-production.up.railway.app/api';
 
 // ---------------- Auth ----------------
 export const authApi = {
@@ -71,7 +75,7 @@ export const inventoryApi = {
   transfers: (params) => api.get('/stock-transfers/', { params }),
 };
 
-// ---------------- Transfer ----------------
+// ---------------- Transfers ----------------
 export const transfersApi = {
   list: (params) => api.get('/stock-transfers/', { params }),
   get: (id) => api.get(`/stock-transfers/${id}/`),
@@ -97,7 +101,6 @@ export const purchasesApi = {
 
 // ---------------- Sales ----------------
 export const salesApi = {
-  // Orders
   list: (params) => api.get('/sales-orders/', { params }),
   get: (id) => api.get(`/sales-orders/${id}/`),
   create: (data) => api.post('/sales-orders/', data),
@@ -108,7 +111,6 @@ export const salesApi = {
   cancel: (id) => api.post(`/sales-orders/${id}/cancel/`),
   returnOrder: (id) => api.post(`/sales-orders/${id}/return/`),
 
-  // Customers
   customers: (params) => api.get('/customers/', { params }),
   getCustomer: (id) => api.get(`/customers/${id}/`),
   createCustomer: (data) => api.post('/customers/', data),
