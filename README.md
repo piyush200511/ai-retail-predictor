@@ -147,3 +147,36 @@ python manage.py test
 # Frontend
 cd frontend
 npm run build   # verify production build
+
+........................................................
+
+
+         TO RUN LOCALY....
+
+STEP-1.
+
+    click windows+r  then  type - services.msc
+                        then  find - MySQL80...then start it
+
+STEP-2.
+
+  Terminal 1 — Backend
+........................
+   bash
+----------
+cd C:\Users\PIYUSH\Desktop\ai-retail-predictor\backend
+venv\Scripts\activate
+python manage.py runserver
+
+STEP-3.
+
+  Terminal 2 — Frontend
+.........................
+   bash
+---------
+cd C:\Users\PIYUSH\Desktop\ai-retail-predictor\frontend
+npm run dev
+
+STEP-4.
+        Open your browser and go to:
+             👉 http://localhost:5173
