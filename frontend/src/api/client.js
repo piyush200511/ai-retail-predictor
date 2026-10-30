@@ -1,13 +1,11 @@
 import axios from 'axios';
 
-// Smart URL detection:
-// - Local dev (localhost/127.0.0.1) → local Django backend
-// - Production (Vercel) → Railway backend
-const API_BASE_URL =
-  typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://127.0.0.1:8000/api'
-    : 'https://ai-retail-predictor-production.up.railway.app/api';
+// ============================================================
+// LOCAL-ONLY SETUP
+// Frontend always talks to local Django backend.
+// No cloud dependencies — runs 100% on your machine.
+// ============================================================
+const API_BASE_URL = 'http://127.0.0.1:8000/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -44,6 +42,7 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newAccess}`;
           return api(originalRequest);
         } catch (e) {
+          // Refresh failed → logout
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           localStorage.removeItem('user');
