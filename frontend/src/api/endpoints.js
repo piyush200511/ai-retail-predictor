@@ -37,6 +37,7 @@ export const productsApi = {
   create: (data) => api.post('/products/', data),
   update: (id, data) => api.put(`/products/${id}/`, data),
   remove: (id) => api.delete(`/products/${id}/`),
+  qrCode: (sku) => api.get(`/products/${sku}/qrcode/`, { responseType: 'blob' }),
 };
 
 export const categoriesApi = {
@@ -142,6 +143,7 @@ export const analyticsApi = {
   sales: () => api.get('/analytics/sales/'),
   inventory: () => api.get('/analytics/inventory/'),
   purchasing: () => api.get('/analytics/purchasing/'),
+  profitLoss: () => api.get('/analytics/profit-loss/'),
 };
 
 // ---------------- Reports (CSV downloads) ----------------
@@ -179,4 +181,10 @@ export const importApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   templateUrl: (type) => `${API_BASE_URL}/import/${type}/template/`,
+};
+
+export const expensesApi = {
+  list: () => api.get('/expenses/'),
+  create: (data) => api.post('/expenses/', data),
+  remove: (id) => api.delete(`/expenses/${id}/`),
 };

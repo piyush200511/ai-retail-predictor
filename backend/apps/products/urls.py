@@ -5,6 +5,7 @@ from .views import (
     CategoryViewSet, BrandViewSet, UnitViewSet,
     ProductViewSet, ProductSupplierViewSet,
 )
+from .qr_views import ProductQRCodeView
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='category')
@@ -14,5 +15,6 @@ router.register(r'products', ProductViewSet, basename='product')
 router.register(r'product-suppliers', ProductSupplierViewSet, basename='product-supplier')
 
 urlpatterns = [
+    path('products/<str:sku>/qrcode/', ProductQRCodeView.as_view(), name='product-qrcode'),
     path('', include(router.urls)),
 ]

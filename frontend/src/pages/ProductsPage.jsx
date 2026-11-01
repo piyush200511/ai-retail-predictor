@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Plus, Search, Upload } from 'lucide-react';
+import { Plus, Search, Upload, QrCode, Download, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { productsApi, categoriesApi } from '../api/endpoints';
 import DataTable from '../components/DataTable';
@@ -21,6 +21,26 @@ export default function ProductsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // ---- QR modal state ----
+  const [qrModal, setQrModal] = useState({ open: false, sku: null, url: null, loading: false, error: '' });
+
+  const openQr = async (sku) => {
+    setQrModal({ open: true, sku, url: null, loading: true, error: '' });
+    try {
+      const res = await productsApi.qrCode(sku);
+      const blob = new Blob([res.data], { type: 'image/png' });
+      const url = URL.createObjectURL(blob);
+      setQrModal((m) => ({ ...m, url, loading: false }));
+    } catch (err) {
+      setQrModal((m) => ({ ...m, loading: false, error: 'Failed to load QR code.' }));
+    }
+  };
+
+  const closeQr = () => {
+    if (qrModal.url) URL.revokeObjectURL(qrModal.url);
+    setQrModal({ open: false, sku: null, url: null, loading: false, error: '' });
+  };
 
   const loadProducts = async () => {
     setLoading(true);
@@ -133,15 +153,25 @@ export default function ProductsPage() {
     {
       key: 'actions',
       label: 'Actions',
-      render: (row) =>
-        canEdit ? (
+      render: (row) => (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => handleEdit(row)}
-            className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+            onClick={() => openQr(row.sku)}
+            title="View QR code"
+            className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1"
           >
-            Edit
+            <QrCode size={14} /> QR
           </button>
-        ) : null,
+          {canEdit && (
+            <button
+              onClick={() => handleEdit(row)}
+              className="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300"
+            >
+              Edit
+            </button>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -226,6 +256,64 @@ export default function ProductsPage() {
         onSaved={handleSaved}
         product={editingProduct}
       />
+
+      {qrModal.open && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={closeQr}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-lg shadow-xl max-w-sm w-full p-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={closeQr}
+              className="absolute top-3 right-3 p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+              title="Close"
+            >
+              <X size={18} />
+            </button>
+
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-1">
+              QR Code
+            </h3>
+            <p className="text-sm font-mono text-slate-500 dark:text-slate-400 mb-4">
+              {qrModal.sku}
+            </p>
+
+            <div className="flex items-center justify-center min-h-[200px]">
+              {qrModal.loading && (
+                <span className="text-slate-500 text-sm">Generating...</span>
+              )}
+              {qrModal.error && (
+                <span className="text-red-500 text-sm">{qrModal.error}</span>
+              )}
+              {qrModal.url && (
+                <img
+                  src={qrModal.url}
+                  alt={`QR for ${qrModal.sku}`}
+                  className="w-56 h-56 border border-slate-200 dark:border-slate-700 rounded"
+                />
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              {qrModal.url && (
+                <a
+                  href={qrModal.url}
+                  download={`${qrModal.sku}-qr.png`}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <Download size={16} /> Download
+                </a>
+              )}
+              <button onClick={closeQr} className="btn-primary">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="fixed top-6 right-6 z-50 rounded-md border bg-green-50 dark:bg-green-950/60 border-green-300 dark:border-green-800 text-green-800 dark:text-green-200 px-4 py-3 shadow-lg">

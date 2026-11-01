@@ -6,6 +6,7 @@ import AppLayout from './layouts/AppLayout';
 import LoginPage from './pages/auth/LoginPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import ProductsPage from './pages/ProductsPage';
+import ScannerPage from './pages/ScannerPage';
 import SuppliersPage from './pages/SuppliersPage';
 import WarehousesPage from './pages/WarehousesPage';
 import InventoryPage from './pages/InventoryPage';
@@ -21,6 +22,8 @@ import SettingsPage from './pages/SettingsPage';
 import InboxPage from './pages/InboxPage';
 import CustomersPage from './pages/CustomersPage';
 import ImportPage from './pages/ImportPage';
+import ProfitLossPage from './pages/ProfitLossPage';
+
 function ToastBridge({ children }) {
   const toast = useToast();
   // Register toast dispatcher for AuthContext
@@ -44,7 +47,9 @@ export default function App() {
               }
             >
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/profit-loss" element={<ProfitLossPage />} />
               <Route path="/products" element={<ProductsPage />} />
+              <Route path="/scan" element={<ScannerPage />} />
               <Route path="/suppliers" element={<SuppliersPage />} />
               <Route path="/warehouses" element={<WarehousesPage />} />
               <Route path="/inventory" element={<InventoryPage />} />

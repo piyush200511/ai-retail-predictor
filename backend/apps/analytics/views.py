@@ -61,3 +61,30 @@ class ExecutiveDashboardView(APIView):
             'inventory': inventory_summary(),
             'purchasing': purchase_summary(start_date=date.today() - timedelta(days=30)),
         })
+
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from apps.authentication.permissions import IsAdmin, IsAnalystOrAdmin
+from .models import Expense
+from .serializers import ExpenseSerializer
+from .services import get_profit_and_loss
+
+class ExpenseViewSet(viewsets.ModelViewSet):
+    queryset = Expense.objects.all()
+    serializer_class = ExpenseSerializer
+    permission_classes = [IsAnalystOrAdmin] # Only Admin/Analyst can view/add
+
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+
+
+class ProfitLossView(APIView):
+    permission_classes = [IsAdmin] # Only Admin can see financials
+
+    def get(self, request):
+        start = request.query_params.get('start_date')
+        end = request.query_params.get('end_date')
+        data = get_profit_and_loss(start_date=start, end_date=end)
+        return Response(data)

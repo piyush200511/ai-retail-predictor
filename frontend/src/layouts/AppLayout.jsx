@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Users, Warehouse, ShoppingCart,
   ShoppingBag, ArrowLeftRight, TrendingUp, BarChart3,
-  FileText, LogOut, Boxes, Mail, ChevronDown, Bell,Upload,
+  FileText, LogOut, Boxes, Mail, ChevronDown, ScanLine, Bell,Upload, DollarSign ,
   Menu, X, Settings, User as UserIcon, Moon, Sun,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +16,7 @@ const MENU_SECTIONS = [
     label: 'Main',
     items: [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'inventory_manager', 'sales_manager', 'purchase_manager', 'analyst'] },
+      { to: '/profit-loss', label: 'Profit & Loss', icon: DollarSign, roles: ['admin'] },
       { to: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['admin', 'analyst'] },
       { to: '/reports', label: 'Reports', icon: FileText, roles: ['admin', 'analyst'] },
       { to: '/import', label: 'Import', icon: Upload, roles: ['admin'] },
@@ -25,6 +26,7 @@ const MENU_SECTIONS = [
     label: 'Catalog',
     items: [
       { to: '/products', label: 'Products', icon: Package, roles: ['admin', 'inventory_manager', 'purchase_manager', 'sales_manager', 'analyst'] },
+      { to: '/scan', label: 'Scanner', icon: ScanLine, roles: ['admin', 'inventory_manager', 'manager'] },
       { to: '/customers', label: 'Customers', icon: Users, roles: ['admin', 'sales_manager', 'analyst'] },
       { to: '/suppliers', label: 'Suppliers', icon: Users, roles: ['admin', 'purchase_manager', 'inventory_manager'] },
       { to: '/warehouses', label: 'Warehouses', icon: Warehouse, roles: ['admin', 'inventory_manager'] },
