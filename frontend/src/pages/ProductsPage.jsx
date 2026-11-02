@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Plus, Search, Upload, QrCode, Download, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { productsApi, categoriesApi } from '../api/endpoints';
 import DataTable from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,7 @@ import ProductFormModal from './products/ProductFormModal';
 export default function ProductsPage() {
   const { hasRole } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canEdit = hasRole('admin', 'inventory_manager');
 
   const [products, setProducts] = useState([]);
@@ -20,12 +21,13 @@ export default function ProductsPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [defaultSku, setDefaultSku] = useState('');
   const [toast, setToast] = useState(null);
 
-  // ---- QR modal state ----
   const [qrModal, setQrModal] = useState({ open: false, sku: null, url: null, loading: false, error: '' });
 
   const openQr = async (sku) => {
+    if (!sku) return;
     setQrModal({ open: true, sku, url: null, loading: true, error: '' });
     try {
       const res = await productsApi.qrCode(sku);
@@ -42,13 +44,39 @@ export default function ProductsPage() {
     setQrModal({ open: false, sku: null, url: null, loading: false, error: '' });
   };
 
+  // Fetch ALL products, walking every page if paginated
   const loadProducts = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await productsApi.list();
-      const data = res.data.results ?? res.data;
-      setProducts(data);
+      // First request — no params
+      const first = await productsApi.list();
+      let items = first.data.results ?? first.data;
+      let all = Array.isArray(items) ? [...items] : [];
+
+      // If paginated, walk remaining pages
+      const totalCount = first.data.count;
+      if (typeof totalCount === 'number' && all.length < totalCount) {
+        const pageSize = all.length || 20;
+        const totalPages = Math.ceil(totalCount / pageSize);
+        const rest = [];
+        for (let p = 2; p <= totalPages; p++) {
+          rest.push(productsApi.list({ page: p }).then((r) => r.data.results ?? r.data).catch(() => []));
+        }
+        const pages = await Promise.all(rest);
+        pages.forEach((arr) => { if (Array.isArray(arr)) all = all.concat(arr); });
+      }
+
+      // Deduplicate by product_id
+      const seen = new Set();
+      all = all.filter((p) => {
+        const id = p.product_id ?? p.sku;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+
+      setProducts(all);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to load products.');
     } finally {
@@ -65,6 +93,19 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => {
+    const newSku = searchParams.get('newSku');
+    if (newSku) {
+      setEditingProduct(null);
+      setDefaultSku(newSku);
+      setModalOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('newSku');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3000);
     return () => clearTimeout(t);
@@ -72,17 +113,22 @@ export default function ProductsPage() {
 
   const handleAdd = () => {
     setEditingProduct(null);
+    setDefaultSku('');
     setModalOpen(true);
   };
 
   const handleEdit = (product) => {
     setEditingProduct(product);
+    setDefaultSku('');
     setModalOpen(true);
   };
 
-  const handleSaved = () => {
+  // savedProduct comes from ProductFormModal — this is the real saved record
+  const handleSaved = async (savedProduct) => {
     setToast({ type: 'success', message: 'Product saved!' });
-    loadProducts();
+    await loadProducts();
+    const sku = savedProduct?.sku || editingProduct?.sku;
+    if (sku) openQr(sku);
   };
 
   const filtered = useMemo(() => {
@@ -252,9 +298,10 @@ export default function ProductsPage() {
 
       <ProductFormModal
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setDefaultSku(''); }}
         onSaved={handleSaved}
         product={editingProduct}
+        defaultSku={defaultSku}
       />
 
       {qrModal.open && (

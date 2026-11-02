@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { ScanLine, Search, X, PackageSearch, ArrowRight } from 'lucide-react';
+import { ScanLine, Search, X, PackageSearch, ArrowRight, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { productsApi } from '../api/endpoints';
 
@@ -14,6 +14,7 @@ export default function ScannerPage() {
   const [manualSku, setManualSku] = useState('');
   const [loading, setLoading] = useState(false);
   const [product, setProduct] = useState(null);
+  const [notFoundSku, setNotFoundSku] = useState('');
   const [error, setError] = useState('');
 
   const scannerRef = useRef(null);
@@ -62,12 +63,13 @@ export default function ScannerPage() {
     setLoading(true);
     setError('');
     setProduct(null);
+    setNotFoundSku('');
     try {
       const res = await productsApi.list({ search: sku });
       const list = res.data.results ?? res.data;
-      const found = list.find((p) => p.sku === sku) || list[0];
+      const found = list.find((p) => p.sku === sku);
       if (!found) {
-        setError(`No product found for SKU "${sku}".`);
+        setNotFoundSku(sku);
       } else {
         setProduct(found);
       }
@@ -85,6 +87,7 @@ export default function ScannerPage() {
 
   const reset = () => {
     setProduct(null);
+    setNotFoundSku('');
     setError('');
     setManualSku('');
   };
@@ -151,6 +154,37 @@ export default function ScannerPage() {
       {error && (
         <div className="rounded-md border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-700 dark:text-red-300">
           {error}
+        </div>
+      )}
+
+      {notFoundSku && (
+        <div className="card bg-white dark:bg-slate-900 p-5 border-l-4 border-amber-500">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs uppercase text-amber-600 dark:text-amber-400">Not in system</div>
+              <div className="text-lg font-bold text-slate-900 dark:text-white mt-1">
+                SKU <span className="font-mono">{notFoundSku}</span>
+              </div>
+              <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                No product found with this SKU.
+              </div>
+            </div>
+            <button onClick={reset} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800">
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => navigate(`/products?newSku=${encodeURIComponent(notFoundSku)}`)}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus size={16} /> Create Product with this SKU
+            </button>
+            <button onClick={reset} className="btn-secondary">
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 

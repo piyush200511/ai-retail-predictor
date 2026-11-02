@@ -20,7 +20,7 @@ const emptyForm = {
   is_active: true,
 };
 
-export default function ProductFormModal({ open, onClose, onSaved, product }) {
+export default function ProductFormModal({ open, onClose, onSaved, product, defaultSku }) {
   const isEdit = !!product;
   const [form, setForm] = useState(emptyForm);
   const [categories, setCategories] = useState([]);
@@ -29,7 +29,6 @@ export default function ProductFormModal({ open, onClose, onSaved, product }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Load reference data once
   useEffect(() => {
     if (!open) return;
     categoriesApi.list().then((r) => setCategories(r.data.results ?? r.data)).catch(() => {});
@@ -37,7 +36,6 @@ export default function ProductFormModal({ open, onClose, onSaved, product }) {
     unitsApi.list().then((r) => setUnits(r.data.results ?? r.data)).catch(() => {});
   }, [open]);
 
-  // Populate form when editing
   useEffect(() => {
     if (product) {
       setForm({
@@ -54,10 +52,11 @@ export default function ProductFormModal({ open, onClose, onSaved, product }) {
         safety_stock: String(product.safety_stock ?? '0'),
       });
     } else {
-      setForm(emptyForm);
+      // Creating new — pre-fill SKU if provided (e.g. from scanner)
+      setForm({ ...emptyForm, sku: defaultSku || '' });
     }
     setError('');
-  }, [product, open]);
+  }, [product, open, defaultSku]);
 
   const update = (key, value) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -72,12 +71,15 @@ export default function ProductFormModal({ open, onClose, onSaved, product }) {
         brand: form.brand || null,
         unit: form.unit || null,
       };
+      let saved;
       if (isEdit) {
-        await productsApi.update(product.product_id, payload);
+        const res = await productsApi.update(product.product_id, payload);
+        saved = res.data;
       } else {
-        await productsApi.create(payload);
+        const res = await productsApi.create(payload);
+        saved = res.data;
       }
-      onSaved?.();
+      onSaved?.(saved);   // pass the created/updated product back
       onClose();
     } catch (err) {
       const data = err.response?.data;
