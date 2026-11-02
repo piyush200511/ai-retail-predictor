@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
-import { ScanLine, Search, X, PackageSearch, ArrowRight, Plus } from 'lucide-react';
+import { ScanLine, Search, X, ArrowRight, Plus, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { productsApi } from '../api/endpoints';
 
@@ -16,8 +16,10 @@ export default function ScannerPage() {
   const [product, setProduct] = useState(null);
   const [notFoundSku, setNotFoundSku] = useState('');
   const [error, setError] = useState('');
+  const [fileScanning, setFileScanning] = useState(false);
 
   const scannerRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const startScanner = async () => {
     setScanError('');
@@ -38,7 +40,7 @@ export default function ScannerPage() {
       setScanError(
         err?.message?.includes('Permission')
           ? 'Camera permission denied. Allow camera and try again.'
-          : 'Could not start camera. Use manual SKU entry below.'
+          : 'Could not start camera. Use upload or manual entry below.'
       );
       setScanning(false);
     }
@@ -56,6 +58,38 @@ export default function ScannerPage() {
   useEffect(() => {
     return () => { stopScanner(); };
   }, []);
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setFileScanning(true);
+    setScanError('');
+    setError('');
+    setProduct(null);
+    setNotFoundSku('');
+
+    try {
+      const tempId = 'qr-file-temp-' + Date.now();
+      const holder = document.createElement('div');
+      holder.id = tempId;
+      holder.style.display = 'none';
+      document.body.appendChild(holder);
+
+      const scanner = new Html5Qrcode(tempId, { verbose: false });
+      const decoded = await scanner.scanFile(file, false);
+
+      try { scanner.clear(); } catch (e) {}
+      document.body.removeChild(holder);
+
+      await lookupSku(decoded);
+    } catch (err) {
+      setScanError('No QR code found in that image. Try a clearer PNG/JPG.');
+    } finally {
+      setFileScanning(false);
+    }
+  };
 
   const lookupSku = async (skuRaw) => {
     const sku = (skuRaw || '').trim();
@@ -89,6 +123,7 @@ export default function ScannerPage() {
     setProduct(null);
     setNotFoundSku('');
     setError('');
+    setScanError('');
     setManualSku('');
   };
 
@@ -99,7 +134,7 @@ export default function ScannerPage() {
           <ScanLine size={24} /> Scanner
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Scan a product QR code or enter SKU manually.
+          Scan a QR with camera, upload a QR image, or enter SKU manually.
         </p>
       </div>
 
@@ -121,6 +156,22 @@ export default function ScannerPage() {
               <X size={16} /> Stop Camera
             </button>
           )}
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="btn-secondary flex items-center gap-2"
+            disabled={fileScanning}
+          >
+            <Upload size={16} /> {fileScanning ? 'Reading…' : 'Upload QR Image'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+
           <span className="text-xs text-slate-500 dark:text-slate-400">
             {scanning ? 'Point camera at QR code…' : 'Camera off'}
           </span>
@@ -225,10 +276,10 @@ export default function ScannerPage() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <button onClick={() => navigate('/inventory')} className="btn-primary flex items-center gap-2">
-              <PackageSearch size={16} /> Adjust Stock
-            </button>
-            <button onClick={() => navigate('/products')} className="btn-secondary flex items-center gap-2">
+            <button
+              onClick={() => navigate(`/products?focusSku=${encodeURIComponent(product.sku)}`)}
+              className="btn-secondary flex items-center gap-2"
+            >
               View in Products <ArrowRight size={16} />
             </button>
           </div>

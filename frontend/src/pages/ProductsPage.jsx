@@ -44,17 +44,14 @@ export default function ProductsPage() {
     setQrModal({ open: false, sku: null, url: null, loading: false, error: '' });
   };
 
-  // Fetch ALL products, walking every page if paginated
   const loadProducts = async () => {
     setLoading(true);
     setError('');
     try {
-      // First request — no params
       const first = await productsApi.list();
       let items = first.data.results ?? first.data;
       let all = Array.isArray(items) ? [...items] : [];
 
-      // If paginated, walk remaining pages
       const totalCount = first.data.count;
       if (typeof totalCount === 'number' && all.length < totalCount) {
         const pageSize = all.length || 20;
@@ -67,7 +64,6 @@ export default function ProductsPage() {
         pages.forEach((arr) => { if (Array.isArray(arr)) all = all.concat(arr); });
       }
 
-      // Deduplicate by product_id
       const seen = new Set();
       all = all.filter((p) => {
         const id = p.product_id ?? p.sku;
@@ -92,6 +88,7 @@ export default function ProductsPage() {
       .catch(() => setCategories([]));
   }, []);
 
+  // ?newSku= → auto-open create modal with SKU pre-filled
   useEffect(() => {
     const newSku = searchParams.get('newSku');
     if (newSku) {
@@ -100,6 +97,18 @@ export default function ProductsPage() {
       setModalOpen(true);
       const next = new URLSearchParams(searchParams);
       next.delete('newSku');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ?focusSku= → filter table to that specific product (from scanner "View in Products")
+  useEffect(() => {
+    const focusSku = searchParams.get('focusSku');
+    if (focusSku) {
+      setSearch(focusSku);
+      const next = new URLSearchParams(searchParams);
+      next.delete('focusSku');
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -123,7 +132,6 @@ export default function ProductsPage() {
     setModalOpen(true);
   };
 
-  // savedProduct comes from ProductFormModal — this is the real saved record
   const handleSaved = async (savedProduct) => {
     setToast({ type: 'success', message: 'Product saved!' });
     await loadProducts();

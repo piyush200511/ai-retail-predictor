@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Search, RefreshCw } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { inventoryApi, warehousesApi } from '../api/endpoints';
 import DataTable from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
@@ -7,6 +8,7 @@ import AdjustStockModal from './inventory/AdjustStockModal';
 
 export default function InventoryPage() {
   const { hasRole } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canAdjust = hasRole('admin', 'inventory_manager');
 
   const [rows, setRows] = useState([]);
@@ -41,6 +43,20 @@ export default function InventoryPage() {
       .list()
       .then((res) => setWarehouses(res.data.results ?? res.data))
       .catch(() => {});
+  }, []);
+
+  // ?focusSku=XXX → pre-fill search box, clear filters
+  useEffect(() => {
+    const focusSku = searchParams.get('focusSku');
+    if (focusSku) {
+      setSearch(focusSku);
+      setWarehouseFilter('');
+      setStatusFilter('');
+      const next = new URLSearchParams(searchParams);
+      next.delete('focusSku');
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -186,7 +202,6 @@ export default function InventoryPage() {
         </button>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div className="rounded-lg border border-slate-200 bg-white p-4">
           <div className="text-xs text-slate-500 uppercase">Total Records</div>
@@ -202,7 +217,6 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4 mb-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>

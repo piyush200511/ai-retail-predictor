@@ -111,7 +111,7 @@ export default function DataTable({
           <tbody>
             {sortedRows.map((row, i) => (
               <tr
-                key={row.id ?? row[columns[0]?.key] ?? i}
+                key={row.id ?? row.inventory_id ?? row.product_id ?? row[columns[0]?.key] ?? i}
                 className="group transition-colors odd:bg-white dark:odd:bg-slate-900 even:bg-slate-50/40 dark:even:bg-slate-900/60 hover:bg-teal-50/40 dark:hover:bg-teal-900/10"
               >
                 {columns.map((col) => (
