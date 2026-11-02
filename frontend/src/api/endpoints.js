@@ -135,6 +135,7 @@ export const forecastingApi = {
   reorder: (params) => api.get('/reorder-recommendations/', { params }),
   dismissReorder: (id) => api.post(`/reorder-recommendations/${id}/dismiss/`),
   reviewReorder: (id) => api.post(`/reorder-recommendations/${id}/review/`),
+  stockoutRisk: () => api.get('/forecasting/stockout-risk/'),
 };
 
 // ---------------- Analytics ----------------

@@ -3,15 +3,16 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.authentication.permissions import IsAdmin, IsAnalystOrAdmin
 from .models import (
-    DemandHistoryDaily, ForecastRun, DemandForecast, ReorderRecommendation,ModelMetric,
+    DemandHistoryDaily, ForecastRun, DemandForecast, ReorderRecommendation, ModelMetric,
 )
 from .serializers import (
     DemandHistorySerializer, ForecastRunSerializer,
     DemandForecastSerializer, ReorderRecommendationSerializer,
-    StartForecastSerializer,ModelMetricSerializer,
+    StartForecastSerializer, ModelMetricSerializer,
 )
 from .services import rebuild_demand_history, generate_reorder_recommendations
 from ml_engine.pipelines.forecast_runner import run_forecast_for_pairs
@@ -122,9 +123,25 @@ class ReorderRecommendationViewSet(viewsets.ModelViewSet):
         rec.status = ReorderRecommendation.Status.REVIEWED
         rec.save(update_fields=['status'])
         return Response(self.get_serializer(rec).data)
+
+
 class ModelMetricViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ModelMetric.objects.all()
     serializer_class = ModelMetricSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['forecast_run', 'metric_name', 'product']
     permission_classes = [IsAuthenticated]
+
+
+class StockoutRiskView(APIView):
+    """
+    GET /api/forecasting/stockout-risk/
+    Returns days-until-stockout + risk level for each product/warehouse.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from .stockout_service import get_stockout_risks
+        limit = request.query_params.get('limit')
+        data = get_stockout_risks(limit=int(limit) if limit else None)
+        return Response({'count': len(data), 'results': data})

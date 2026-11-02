@@ -5,6 +5,7 @@ from .views import (
     DemandHistoryViewSet, ForecastRunViewSet,
     DemandForecastViewSet, ReorderRecommendationViewSet,
     ModelMetricViewSet,
+    StockoutRiskView,
 )
 
 router = DefaultRouter()
@@ -14,4 +15,7 @@ router.register(r'forecasts', DemandForecastViewSet, basename='forecast')
 router.register(r'reorder-recommendations', ReorderRecommendationViewSet, basename='reorder-recommendation')
 router.register(r'model-metrics', ModelMetricViewSet, basename='model-metric')
 
-urlpatterns = [path('', include(router.urls))]
+urlpatterns = [
+    path('forecasting/stockout-risk/', StockoutRiskView.as_view(), name='stockout-risk'),
+    path('', include(router.urls)),
+]

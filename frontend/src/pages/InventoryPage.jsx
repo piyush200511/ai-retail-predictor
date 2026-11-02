@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Search, RefreshCw } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { inventoryApi, warehousesApi } from '../api/endpoints';
+import { inventoryApi, warehousesApi, forecastingApi } from '../api/endpoints';
 import DataTable from '../components/DataTable';
 import { useAuth } from '../context/AuthContext';
 import AdjustStockModal from './inventory/AdjustStockModal';
@@ -18,18 +18,49 @@ export default function InventoryPage() {
   const [search, setSearch] = useState('');
   const [warehouseFilter, setWarehouseFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [riskByKey, setRiskByKey] = useState({});
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [toast, setToast] = useState(null);
 
+  // --- FIXED: Fetches ALL pages of inventory ---
   const loadInventory = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await inventoryApi.list();
-      const data = res.data.results ?? res.data;
-      setRows(data);
+      // 1. Get page 1
+      const first = await inventoryApi.list();
+      let items = first.data.results ?? first.data;
+      let all = Array.isArray(items) ? [...items] : [];
+
+      // 2. Check if there are more pages
+      const totalCount = first.data.count;
+      if (typeof totalCount === 'number' && all.length < totalCount) {
+        const pageSize = all.length || 20;
+        const totalPages = Math.ceil(totalCount / pageSize);
+        
+        // 3. Fetch all remaining pages in parallel
+        const rest = [];
+        for (let p = 2; p <= totalPages; p++) {
+          rest.push(inventoryApi.list({ page: p }).then((r) => r.data.results ?? r.data).catch(() => []));
+        }
+        const pages = await Promise.all(rest);
+        pages.forEach((arr) => { 
+          if (Array.isArray(arr)) all = all.concat(arr); 
+        });
+      }
+
+      // 4. Deduplicate by inventory_id
+      const seen = new Set();
+      all = all.filter((p) => {
+        const id = p.inventory_id;
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      });
+
+      setRows(all);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to load inventory.');
     } finally {
@@ -37,8 +68,23 @@ export default function InventoryPage() {
     }
   };
 
+  const loadRisk = async () => {
+    try {
+      const res = await forecastingApi.stockoutRisk();
+      const list = res.data.results ?? res.data;
+      const map = {};
+      list.forEach((r) => {
+        map[`${r.product_id}-${r.warehouse_code}`] = r;
+      });
+      setRiskByKey(map);
+    } catch (err) {
+      setRiskByKey({});
+    }
+  };
+
   useEffect(() => {
     loadInventory();
+    loadRisk();
     warehousesApi
       .list()
       .then((res) => setWarehouses(res.data.results ?? res.data))
@@ -73,6 +119,7 @@ export default function InventoryPage() {
   const handleSaved = () => {
     setToast({ type: 'success', message: 'Stock adjusted!' });
     loadInventory();
+    loadRisk();
   };
 
   const filtered = useMemo(() => {
@@ -107,6 +154,67 @@ export default function InventoryPage() {
       return <span className="text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-medium">Low Stock</span>;
     }
     return <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">OK</span>;
+  };
+
+  const riskBadge = (row) => {
+    const pid = typeof row.product === 'object' && row.product !== null 
+      ? (row.product.product_id || row.product.id) 
+      : row.product;
+      
+    const key = `${pid}-${row.warehouse_code}`;
+    const mlRisk = riskByKey[key];
+
+    // 1. If ML has a prediction, use it!
+    if (mlRisk) {
+      const days = mlRisk.days_until_stockout;
+      let daysText = '∞';
+      if (days != null) {
+        daysText = days < 1 ? `${(days * 24).toFixed(0)}h` : `${days.toFixed(1)}d`;
+      }
+      const colorMap = {
+        HIGH: 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-300',
+        MEDIUM: 'bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300',
+        LOW: 'bg-green-100 text-green-700 dark:bg-green-950/50 dark:text-green-300',
+      };
+      return (
+        <div className="flex flex-col gap-1">
+          <span className={`text-xs px-2 py-0.5 rounded font-medium inline-block w-fit ${colorMap[mlRisk.risk_level] || colorMap.LOW}`}>
+            {mlRisk.risk_level}
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            runs out in {daysText}
+          </span>
+        </div>
+      );
+    }
+
+    // 2. Fallback: If ML has no data (e.g. new product), use basic logic
+    const avail = Number(row.quantity_available);
+    const reorder = Number(row.reorder_level || 0);
+    
+    if (avail <= 0) {
+      return (
+        <div className="flex flex-col gap-1">
+          <span className="text-xs px-2 py-0.5 rounded font-medium inline-block w-fit bg-red-100 text-red-700">HIGH</span>
+          <span className="text-xs text-slate-500">Out of stock</span>
+        </div>
+      );
+    }
+    if (reorder > 0 && avail <= reorder) {
+      return (
+        <div className="flex flex-col gap-1">
+          <span className="text-xs px-2 py-0.5 rounded font-medium inline-block w-fit bg-amber-100 text-amber-800">MEDIUM</span>
+          <span className="text-xs text-slate-500">Below reorder</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="flex flex-col gap-1">
+        <span className="text-xs px-2 py-0.5 rounded font-medium inline-block w-fit bg-green-100 text-green-700">LOW</span>
+        <span className="text-xs text-slate-500">Healthy</span>
+      </div>
+    );
   };
 
   const columns = [
@@ -156,6 +264,12 @@ export default function InventoryPage() {
       key: 'status',
       label: 'Status',
       render: (row) => stockBadge(row),
+    },
+    {
+      key: 'risk',
+      label: 'Risk',
+      sortable: false,
+      render: (row) => riskBadge(row),
     },
     {
       key: 'actions',
